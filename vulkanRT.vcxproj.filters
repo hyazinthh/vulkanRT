@@ -2,5 +2,17 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\application.cpp" />
+    <ClCompile Include="src\vulkan\instance.cpp" />
+    <ClCompile Include="src\vulkan\extensions.cpp" />
+    <ClCompile Include="src\vulkan\device.cpp" />
+    <ClCompile Include="src\vulkan\swap_chain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\application.h" />
+    <ClInclude Include="src\vulkan\instance.h" />
+    <ClInclude Include="src\vulkan\extensions.h" />
+    <ClInclude Include="src\vulkan\device.h" />
+    <ClInclude Include="src\vulkan\swap_chain.h" />
   </ItemGroup>
 </Project>
