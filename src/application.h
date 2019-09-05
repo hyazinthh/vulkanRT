@@ -18,6 +18,8 @@ class Application {
 		~Application();
 
 		void run();
+		
+		void draw();
 
 		const std::string& getName() const { return name; }
 
@@ -43,6 +45,8 @@ class Application {
 
 		void createPipeline();
 
+		void createSemaphores();
+
 		void queryExtensions();
 
 		Extensions getRequiredExtensions(bool debug);
@@ -62,6 +66,10 @@ class Application {
 		SwapChain* swapchain = nullptr;
 
 		Pipeline* pipeline = nullptr;
+
+		VkSemaphore imageAvailableSemaphore;
+
+		VkSemaphore renderFinishedSemaphore;
 };
 
 #endif

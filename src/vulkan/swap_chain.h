@@ -12,11 +12,11 @@ class SwapChain {
 
 		~SwapChain();
 
-		VkSwapchainKHR get() { return swapchain; }
+		const VkSwapchainKHR& get() { return swapchain; }
 
-		VkFormat getFormat() { return format; }
+		const VkFormat& getFormat() { return format; }
 
-		VkExtent2D getExtent() { return extent; }
+		const VkExtent2D& getExtent() { return extent; }
 
 		const std::vector<VkImage>& getImages() { return images; }
 

@@ -38,6 +38,14 @@ class Device {
 			return getQueueFamilies(physicalDevice);
 		}
 
+		VkQueue getGraphicsQueue() {
+			return graphicsQueue;
+		}
+
+		VkQueue getPresentQueue() {
+			return presentQueue;
+		}
+
 		SwapChain* createSwapChain(uint32_t width, uint32_t height);
 
 	private:

@@ -45,9 +45,12 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createDevice();
 	createSwapchain();
 	createPipeline();
+	createSemaphores();
 }
 
 Application::~Application() {
+	vkDestroySemaphore(device->get(), renderFinishedSemaphore, nullptr);
+	vkDestroySemaphore(device->get(), imageAvailableSemaphore, nullptr);
 	delete pipeline;
 	delete swapchain;
 	delete device;
@@ -60,7 +63,42 @@ Application::~Application() {
 void Application::run() {
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+		draw();
 	}
+
+	vkDeviceWaitIdle(device->get());
+}
+
+void Application::draw() {
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(device->get(), swapchain->get(), UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &imageAvailableSemaphore;
+	submitInfo.pWaitDstStageMask = waitStages;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &pipeline->getCommandBuffers()[imageIndex];
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &renderFinishedSemaphore;
+
+	if (vkQueueSubmit(device->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to submit draw command buffer");
+	}
+
+	VkPresentInfoKHR presentInfo = {};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &swapchain->get();
+	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pResults = nullptr; // Optional
+
+	vkQueuePresentKHR(device->getPresentQueue(), &presentInfo);
 }
 
 void Application::queryExtensions() {
@@ -132,4 +170,16 @@ void Application::createPipeline() {
 
 	delete fs;
 	delete vs;
+}
+
+void Application::createSemaphores() {
+
+	VkSemaphoreCreateInfo semaphoreInfo = {};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	if (vkCreateSemaphore(device->get(), &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS ||
+		vkCreateSemaphore(device->get(), &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create semaphores");
+	}
+
 }

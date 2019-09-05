@@ -14,6 +14,8 @@ class Pipeline {
 
 		VkPipeline get() { return pipeline; }
 
+		const std::vector<VkCommandBuffer>& getCommandBuffers() { return commandBuffers;  }
+
 	private:
 		Device* device;
 
@@ -22,6 +24,12 @@ class Pipeline {
 		VkRenderPass renderPass;
 
 		VkPipeline pipeline;
+
+		std::vector<VkFramebuffer> framebuffers;
+
+		VkCommandPool commandPool;
+
+		std::vector<VkCommandBuffer> commandBuffers;
 };
 
 #endif // !PIPELINE_H_
