@@ -43,9 +43,12 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createInstance();
 	createSurface();
 	createDevice();
+	createSwapchain();
+	createPipeline();
 }
 
 Application::~Application() {
+	delete pipeline;
 	delete swapchain;
 	delete device;
 	vkDestroySurfaceKHR(instance->get(), surface, nullptr);
@@ -115,4 +118,18 @@ void Application::createSurface() {
 	if (glfwCreateWindowSurface(instance->get(), window, nullptr, &surface) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create window surface");
 	}
+}
+
+void Application::createSwapchain() {
+	swapchain = device->createSwapChain(width, height);
+}
+
+void Application::createPipeline() {
+	auto vs = Shader::loadFromFile(device, "shaders/triangle.vert", Shader::Type::Vertex);
+	auto fs = Shader::loadFromFile(device, "shaders/triangle.frag", Shader::Type::Fragment);
+
+	pipeline = new Pipeline(device, swapchain, vs, fs);
+
+	delete fs;
+	delete vs;
 }

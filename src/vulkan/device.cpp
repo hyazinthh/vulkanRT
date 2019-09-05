@@ -129,5 +129,5 @@ QueueFamilies Device::getQueueFamilies(VkPhysicalDevice device) const {
 
 SwapChain* Device::createSwapChain(uint32_t width, uint32_t height) {
 	VkExtent2D extent = { width, height };
-	return new SwapChain(this, extent, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, VK_PRESENT_MODE_FIFO_KHR);
+	return new SwapChain(this, surface, extent, VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, VK_PRESENT_MODE_FIFO_KHR);
 }

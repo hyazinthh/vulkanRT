@@ -3,8 +3,10 @@
 
 #include <shaderc/shaderc.hpp>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
-Shader::Shader(Device* device, const std::string& src, Type type) : device(device) {
+Shader::Shader(Device* device, const std::string& src, Type type) : device(device), type(type) {
 	shaderc::Compiler compiler;
 	shaderc::CompileOptions options;
 
@@ -12,7 +14,7 @@ Shader::Shader(Device* device, const std::string& src, Type type) : device(devic
 
 	VkShaderModuleCreateInfo moduleInfo = {};
 	moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	moduleInfo.codeSize = spv.size();
+	moduleInfo.codeSize = spv.size() * sizeof(uint32_t);
 	moduleInfo.pCode = spv.data();
 	
 	if (vkCreateShaderModule(device->get(), &moduleInfo, nullptr, &module) != VK_SUCCESS) {
@@ -24,7 +26,6 @@ Shader::Shader(Device* device, const std::string& src, Type type) : device(devic
 	stageInfo.stage = getStageFlagBits();
 	stageInfo.module = module;
 	stageInfo.pName = "main";
-
 }
 
 Shader::~Shader() {
@@ -35,7 +36,7 @@ std::string Shader::prepare(const std::string& src, shaderc::Compiler& compiler,
 	auto result = compiler.PreprocessGlsl(src, getKind(), "", options);
 
 	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-		std::cout << result.GetErrorMessage() << std::endl;
+		std::cout << "shaderc" << result.GetErrorMessage() << std::endl;
 		throw std::runtime_error("Failed to prepare shader");
 	}
 
@@ -46,7 +47,7 @@ std::vector<uint32_t> Shader::compile(const std::string& src, shaderc::Compiler&
 	auto result = compiler.CompileGlslToSpv(src, getKind(), "", "main", options);
 
 	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-		std::cout << result.GetErrorMessage() << std::endl;
+		std::cout << "shaderc" << result.GetErrorMessage() << std::endl;
 		throw std::runtime_error("Failed to compile shader");
 	}
 
@@ -71,4 +72,16 @@ VkShaderStageFlagBits Shader::getStageFlagBits() {
 		default:
 			return VK_SHADER_STAGE_FRAGMENT_BIT;
 	}
+}
+
+Shader* Shader::loadFromFile(Device* device, const std::string& path, Type type) {
+	std::ifstream f(path);
+	if (!f.is_open()) {
+		throw std::runtime_error(std::string("Failed to open '") + path + "'");
+	}
+
+	std::stringstream buffer;
+	buffer << f.rdbuf();
+
+	return new Shader(device, buffer.str(), type);
 }

@@ -1,21 +1,24 @@
 #include "swap_chain.h"
 #include "device.h"
 
-SwapChain::SwapChain(Device* device, VkExtent2D extent, VkFormat format, VkColorSpaceKHR colorSpace, VkPresentModeKHR mode)
-	: format(format), device(device) {
+SwapChain::SwapChain(Device* device, VkSurfaceKHR surface, VkExtent2D extent, VkFormat format, VkColorSpaceKHR colorSpace, VkPresentModeKHR mode)
+	: format(format), device(device), extent(extent) {
+
+	VkSurfaceCapabilitiesKHR capabilities;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->getPhysical(), surface, &capabilities);
 
 	VkSwapchainCreateInfoKHR info = {};
 	info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	info.clipped = VK_TRUE;
 	info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	info.surface = device->getSurface();
-	info.minImageCount = 1;
+	info.minImageCount = capabilities.minImageCount + 1;
 	info.imageFormat = format;
 	info.imageColorSpace = colorSpace;
 	info.imageExtent = extent;
 	info.imageArrayLayers = 1;
 	info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	info.preTransform = capabilities.currentTransform;
 	info.presentMode = mode;
 	info.oldSwapchain = VK_NULL_HANDLE;
 

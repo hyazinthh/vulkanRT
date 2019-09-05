@@ -8,6 +8,7 @@
 #include "vulkan/instance.h"
 #include "vulkan/device.h"
 #include "vulkan/swap_chain.h"
+#include "vulkan/pipeline.h"
 
 class Application {
 	public:
@@ -38,6 +39,10 @@ class Application {
 
 		void createSurface();
 
+		void createSwapchain();
+
+		void createPipeline();
+
 		void queryExtensions();
 
 		Extensions getRequiredExtensions(bool debug);
@@ -55,6 +60,8 @@ class Application {
 		VkSurfaceKHR surface;
 
 		SwapChain* swapchain = nullptr;
+
+		Pipeline* pipeline = nullptr;
 };
 
 #endif

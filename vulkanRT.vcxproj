@@ -24,6 +24,7 @@
     <ClCompile Include="src\vulkan\device.cpp" />
     <ClCompile Include="src\vulkan\instance.cpp" />
     <ClCompile Include="src\vulkan\extensions.cpp" />
+    <ClCompile Include="src\vulkan\pipeline.cpp" />
     <ClCompile Include="src\vulkan\shader.cpp" />
     <ClCompile Include="src\vulkan\shader.h" />
     <ClCompile Include="src\vulkan\swap_chain.cpp" />
@@ -33,7 +34,12 @@
     <ClInclude Include="src\vulkan\device.h" />
     <ClInclude Include="src\vulkan\instance.h" />
     <ClInclude Include="src\vulkan\extensions.h" />
+    <ClInclude Include="src\vulkan\pipeline.h" />
     <ClInclude Include="src\vulkan\swap_chain.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\triangle.frag" />
+    <None Include="shaders\triangle.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -134,6 +140,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>libs\glfw-3.3\include;libs\glm;$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -188,6 +195,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>libs\glfw-3.3\include;libs\glm;$(VULKAN_SDK)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -8,11 +8,15 @@ class Device;
 
 class SwapChain {
 	public:
-		SwapChain(Device* device, VkExtent2D extent, VkFormat format, VkColorSpaceKHR colorSpace, VkPresentModeKHR mode);
+		SwapChain(Device* device, VkSurfaceKHR surface, VkExtent2D extent, VkFormat format, VkColorSpaceKHR colorSpace, VkPresentModeKHR mode);
 
 		~SwapChain();
 
 		VkSwapchainKHR get() { return swapchain; }
+
+		VkFormat getFormat() { return format; }
+
+		VkExtent2D getExtent() { return extent; }
 
 		const std::vector<VkImage>& getImages() { return images; }
 

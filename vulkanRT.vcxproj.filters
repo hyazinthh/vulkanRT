@@ -9,6 +9,7 @@
     <ClCompile Include="src\vulkan\swap_chain.cpp" />
     <ClCompile Include="src\vulkan\shader.cpp" />
     <ClCompile Include="src\vulkan\shader.h" />
+    <ClCompile Include="src\vulkan\pipeline.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\application.h" />
@@ -16,5 +17,10 @@
     <ClInclude Include="src\vulkan\extensions.h" />
     <ClInclude Include="src\vulkan\device.h" />
     <ClInclude Include="src\vulkan\swap_chain.h" />
+    <ClInclude Include="src\vulkan\pipeline.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\triangle.vert" />
+    <None Include="shaders\triangle.frag" />
   </ItemGroup>
 </Project>

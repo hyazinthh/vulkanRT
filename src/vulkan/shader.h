@@ -9,12 +9,12 @@ class Device;
 
 class Shader {
 
-	enum class Type {
-		Vertex,
-		Fragment
-	};
-
 	public:
+		enum class Type {
+			Vertex,
+			Fragment
+		};
+
 		Shader(Device* device, const std::string& src, Type type);
 
 		~Shader();
@@ -22,6 +22,8 @@ class Shader {
 		VkShaderModule getModule() { return module; }
 
 		VkPipelineShaderStageCreateInfo getStageInfo() { return stageInfo; }
+
+		static Shader* loadFromFile(Device* device, const std::string& path, Type type);
 
 	private:
 	
