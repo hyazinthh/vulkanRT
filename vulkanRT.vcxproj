@@ -26,7 +26,6 @@
     <ClCompile Include="src\vulkan\extensions.cpp" />
     <ClCompile Include="src\vulkan\pipeline.cpp" />
     <ClCompile Include="src\vulkan\shader.cpp" />
-    <ClCompile Include="src\vulkan\shader.h" />
     <ClCompile Include="src\vulkan\swap_chain.cpp" />
   </ItemGroup>
   <ItemGroup>
