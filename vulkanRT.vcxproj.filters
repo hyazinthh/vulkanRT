@@ -7,6 +7,8 @@
     <ClCompile Include="src\vulkan\extensions.cpp" />
     <ClCompile Include="src\vulkan\device.cpp" />
     <ClCompile Include="src\vulkan\swap_chain.cpp" />
+    <ClCompile Include="src\vulkan\shader.cpp" />
+    <ClCompile Include="src\vulkan\shader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\application.h" />

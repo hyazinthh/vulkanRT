@@ -16,12 +16,16 @@ class SwapChain {
 
 		const std::vector<VkImage>& getImages() { return images; }
 
+		const std::vector<VkImageView>& getImageViews() { return imageViews; }
+
 	private:
 		Device* device;
 
 		VkSwapchainKHR swapchain;
 
 		std::vector<VkImage> images;
+
+		std::vector<VkImageView> imageViews;
 
 		VkFormat format;
 
