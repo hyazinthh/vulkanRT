@@ -1,5 +1,6 @@
 #include "device.h"
 #include "instance.h"
+#include "extensions.h"
 
 #include <set>
 
@@ -64,6 +65,7 @@ void Device::createLogicalDevice(VkPhysicalDevice physicalDevice, int width, int
 	// Extensions
 	std::vector<const char*> ext;
 	ext.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+	ext.push_back(VK_NV_RAY_TRACING_EXTENSION_NAME);
 
 	std::transform(requiredExtensions.begin(), requiredExtensions.end(), std::back_inserter(ext), [](auto& e) {
 		return e.c_str();
@@ -85,6 +87,10 @@ void Device::createLogicalDevice(VkPhysicalDevice physicalDevice, int width, int
 	// Get queues
 	vkGetDeviceQueue(device, queueFamilies.graphics.value(), 0, &graphicsQueue);
 	vkGetDeviceQueue(device, queueFamilies.present.value(), 0, &presentQueue);
+
+	if (VkExt::initDeviceProcs(this) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to setup Vulkan extension procs");
+	}
 }
 
 bool Device::checkPhysicalDevice(VkPhysicalDevice device) {

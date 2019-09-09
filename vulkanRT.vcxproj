@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\vulkan\buffer.cpp" />
     <ClCompile Include="src\application.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\vulkan\device.cpp" />
@@ -29,12 +30,15 @@
     <ClCompile Include="src\vulkan\swap_chain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\vulkan\buffer.h" />
     <ClInclude Include="src\application.h" />
     <ClInclude Include="src\vulkan\device.h" />
     <ClInclude Include="src\vulkan\instance.h" />
     <ClInclude Include="src\vulkan\extensions.h" />
     <ClInclude Include="src\vulkan\pipeline.h" />
+    <ClInclude Include="src\vulkan\shader.h" />
     <ClInclude Include="src\vulkan\swap_chain.h" />
+    <ClInclude Include="src\vulkan\vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\triangle.frag" />

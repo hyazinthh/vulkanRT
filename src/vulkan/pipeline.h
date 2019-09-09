@@ -3,12 +3,13 @@
 
 #include "shader.h"
 #include "swap_chain.h"
+#include "buffer.h"
 
 class Device;
 
 class Pipeline {
 	public:
-		Pipeline(Device* device, SwapChain* swapchain, Shader* vertexShader, Shader* fragmentShader);
+		Pipeline(Device* device, SwapChain* swapchain, Buffer* vertexBuffer, Buffer* indexBuffer, Shader* vertexShader, Shader* fragmentShader);
 
 		~Pipeline();
 

@@ -9,6 +9,8 @@
 #include "vulkan/device.h"
 #include "vulkan/swap_chain.h"
 #include "vulkan/pipeline.h"
+#include "vulkan/buffer.h"
+#include "vulkan/vertex.h"
 
 class Application {
 	public:
@@ -47,6 +49,8 @@ class Application {
 
 		void createSyncObjects();
 
+		void createBuffers();
+
 		void queryExtensions();
 
 		Extensions getRequiredExtensions(bool debug);
@@ -74,6 +78,10 @@ class Application {
 		VkSemaphore renderFinishedSemaphores[MAX_FRAMES];
 
 		VkFence frameFences[MAX_FRAMES];
+
+		Buffer* vertexBuffer;
+
+		Buffer* indexBuffer;
 };
 
 #endif

@@ -4,6 +4,16 @@
 #include <iostream>
 #include <stdexcept>
 
+const std::vector<Vertex> vertices = {
+	{{0.0f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}},
+	{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+	{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}}
+};
+
+const std::vector<uint32_t> indices = {
+	0, 1, 2
+};
+
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 											 VkDebugUtilsMessageTypeFlagsEXT messageType,
 											 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -44,11 +54,15 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createSurface();
 	createDevice();
 	createSwapchain();
+	createBuffers();
 	createPipeline();
 	createSyncObjects();
 }
 
 Application::~Application() {
+
+	delete vertexBuffer;
+	delete indexBuffer;
 
 	for (int i = 0; i < MAX_FRAMES; i++) {
 		vkDestroySemaphore(device->get(), renderFinishedSemaphores[i], nullptr);
@@ -78,10 +92,13 @@ void Application::draw() {
 	static int currentFrame = 0;
 
 	vkWaitForFences(device->get(), 1, &frameFences[currentFrame], VK_TRUE, UINT64_MAX);
-	vkResetFences(device->get(), 1, &frameFences[currentFrame]);
 
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(device->get(), swapchain->get(), UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+	if (vkAcquireNextImageKHR(device->get(), swapchain->get(), UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex) != VK_SUCCESS) {
+		return;
+	}
+
+	vkResetFences(device->get(), 1, &frameFences[currentFrame]);
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -138,7 +155,6 @@ Extensions Application::getRequiredExtensions(bool debug) {
 	return extensions;
 }
 
-
 void Application::createWindow() {
 	glfwInit();
 
@@ -178,7 +194,7 @@ void Application::createPipeline() {
 	auto vs = Shader::loadFromFile(device, "shaders/triangle.vert", Shader::Type::Vertex);
 	auto fs = Shader::loadFromFile(device, "shaders/triangle.frag", Shader::Type::Fragment);
 
-	pipeline = new Pipeline(device, swapchain, vs, fs);
+	pipeline = new Pipeline(device, swapchain, vertexBuffer, indexBuffer, vs, fs);
 
 	delete fs;
 	delete vs;
@@ -197,7 +213,22 @@ void Application::createSyncObjects() {
 		if (vkCreateSemaphore(device->get(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
 			vkCreateSemaphore(device->get(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
 			vkCreateFence(device->get(), &fenceInfo, nullptr, &frameFences[i]) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create semaphores");
+			throw std::runtime_error("Failed to create synchronization objects");
 		}
 	}
+}
+
+void Application::createBuffers() {
+
+	vertexBuffer = new Buffer(device, sizeof(Vertex) * vertices.size(), 
+						      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+						      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
+	vertexBuffer->fill(vertices.data());
+
+	indexBuffer = new Buffer(device, sizeof(uint32_t) * indices.size(),
+							 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+							 VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+	indexBuffer->fill(indices.data());
 }

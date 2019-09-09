@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vulkan/vulkan.h>
+
+#define NV_EXTENSIONS
 #include <shaderc/shaderc.hpp>
 
 class Device;
@@ -12,7 +14,13 @@ class Shader {
 	public:
 		enum class Type {
 			Vertex,
-			Fragment
+			Fragment,
+			RayGen,
+			AnyHit,
+			ClosestHit,
+			Miss,
+			Intersection,
+			Callable
 		};
 
 		Shader(Device* device, const std::string& src, Type type);

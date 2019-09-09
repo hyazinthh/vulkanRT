@@ -1,11 +1,19 @@
 #include "pipeline.h"
 #include "device.h"
+#include "vertex.h"
 
-Pipeline::Pipeline(Device* device, SwapChain* swapchain, Shader* vertexShader, Shader* fragmentShader) 
+Pipeline::Pipeline(Device* device, SwapChain* swapchain, Buffer* vertexBuffer, Buffer* indexBuffer, Shader* vertexShader, Shader* fragmentShader)
 	: device(device) {
+
+	auto vertexBindingDesc = Vertex::getBindingDescription();
+	auto vertexAttrDesc = Vertex::getAttributeDescription();
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.pVertexBindingDescriptions = &vertexBindingDesc;
+	vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t) vertexAttrDesc.size();
+	vertexInputInfo.pVertexAttributeDescriptions = vertexAttrDesc.data();
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -226,6 +234,10 @@ Pipeline::Pipeline(Device* device, SwapChain* swapchain, Shader* vertexShader, S
 
 		vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBuffer->get(), offsets);
+		vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer->get(), 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffers[i]);

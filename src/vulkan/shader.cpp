@@ -59,8 +59,20 @@ shaderc_shader_kind Shader::getKind() {
 		case Type::Vertex:
 			return shaderc_vertex_shader;
 		case Type::Fragment:
-		default:
 			return shaderc_fragment_shader;
+		case Type::RayGen:
+			return shaderc_raygen_shader;
+		case Type::AnyHit:
+			return shaderc_anyhit_shader;
+		case Type::ClosestHit:
+			return shaderc_closesthit_shader;
+		case Type::Miss:
+			return shaderc_miss_shader;
+		case Type::Intersection:
+			return shaderc_intersection_shader;
+		case Type::Callable:
+		default:
+			return shaderc_callable_shader;
 	}
 }
 
@@ -69,8 +81,20 @@ VkShaderStageFlagBits Shader::getStageFlagBits() {
 		case Type::Vertex:
 			return VK_SHADER_STAGE_VERTEX_BIT;
 		case Type::Fragment:
-		default:
 			return VK_SHADER_STAGE_FRAGMENT_BIT;
+		case Type::RayGen:
+			return VK_SHADER_STAGE_RAYGEN_BIT_NV;
+		case Type::AnyHit:
+			return VK_SHADER_STAGE_ANY_HIT_BIT_NV;
+		case Type::ClosestHit:
+			return VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+		case Type::Miss:
+			return VK_SHADER_STAGE_MISS_BIT_NV;
+		case Type::Intersection:
+			return VK_SHADER_STAGE_INTERSECTION_BIT_NV;
+		case Type::Callable:
+		default:
+			return VK_SHADER_STAGE_CALLABLE_BIT_NV;
 	}
 }
 
