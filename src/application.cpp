@@ -45,12 +45,17 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createDevice();
 	createSwapchain();
 	createPipeline();
-	createSemaphores();
+	createSyncObjects();
 }
 
 Application::~Application() {
-	vkDestroySemaphore(device->get(), renderFinishedSemaphore, nullptr);
-	vkDestroySemaphore(device->get(), imageAvailableSemaphore, nullptr);
+
+	for (int i = 0; i < MAX_FRAMES; i++) {
+		vkDestroySemaphore(device->get(), renderFinishedSemaphores[i], nullptr);
+		vkDestroySemaphore(device->get(), imageAvailableSemaphores[i], nullptr);
+		vkDestroyFence(device->get(), frameFences[i], nullptr);
+	}
+
 	delete pipeline;
 	delete swapchain;
 	delete device;
@@ -70,35 +75,42 @@ void Application::run() {
 }
 
 void Application::draw() {
+	static int currentFrame = 0;
+
+	vkWaitForFences(device->get(), 1, &frameFences[currentFrame], VK_TRUE, UINT64_MAX);
+	vkResetFences(device->get(), 1, &frameFences[currentFrame]);
+
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(device->get(), swapchain->get(), UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	vkAcquireNextImageKHR(device->get(), swapchain->get(), UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &imageAvailableSemaphore;
+	submitInfo.pWaitSemaphores = &imageAvailableSemaphores[currentFrame];
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &pipeline->getCommandBuffers()[imageIndex];
 	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &renderFinishedSemaphore;
+	submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
 
-	if (vkQueueSubmit(device->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+	if (vkQueueSubmit(device->getGraphicsQueue(), 1, &submitInfo, frameFences[currentFrame]) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to submit draw command buffer");
 	}
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
+	presentInfo.pWaitSemaphores = &renderFinishedSemaphores[currentFrame];
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &swapchain->get();
 	presentInfo.pImageIndices = &imageIndex;
 	presentInfo.pResults = nullptr; // Optional
 
 	vkQueuePresentKHR(device->getPresentQueue(), &presentInfo);
+
+	currentFrame = (currentFrame + 1) % MAX_FRAMES;
 }
 
 void Application::queryExtensions() {
@@ -172,14 +184,20 @@ void Application::createPipeline() {
 	delete vs;
 }
 
-void Application::createSemaphores() {
+void Application::createSyncObjects() {
 
 	VkSemaphoreCreateInfo semaphoreInfo = {};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	if (vkCreateSemaphore(device->get(), &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS ||
-		vkCreateSemaphore(device->get(), &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create semaphores");
-	}
+	VkFenceCreateInfo fenceInfo = {};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
+	for (int i = 0; i < MAX_FRAMES; i++) {
+		if (vkCreateSemaphore(device->get(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+			vkCreateSemaphore(device->get(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+			vkCreateFence(device->get(), &fenceInfo, nullptr, &frameFences[i]) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create semaphores");
+		}
+	}
 }

@@ -45,7 +45,7 @@ class Application {
 
 		void createPipeline();
 
-		void createSemaphores();
+		void createSyncObjects();
 
 		void queryExtensions();
 
@@ -67,9 +67,13 @@ class Application {
 
 		Pipeline* pipeline = nullptr;
 
-		VkSemaphore imageAvailableSemaphore;
+		static const int MAX_FRAMES = 2;
 
-		VkSemaphore renderFinishedSemaphore;
+		VkSemaphore imageAvailableSemaphores[MAX_FRAMES];
+
+		VkSemaphore renderFinishedSemaphores[MAX_FRAMES];
+
+		VkFence frameFences[MAX_FRAMES];
 };
 
 #endif
