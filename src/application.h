@@ -11,6 +11,7 @@
 #include "vulkan/pipeline.h"
 #include "vulkan/buffer.h"
 #include "vulkan/vertex.h"
+#include "vulkan/rt/acceleration_structure.h"
 
 class Application {
 	public:

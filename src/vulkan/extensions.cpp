@@ -2,7 +2,7 @@
 
 PFN_vkCreateDebugUtilsMessengerEXT VkExt::vkCreateDebugUtilsMessengerEXT = nullptr;
 PFN_vkDestroyDebugUtilsMessengerEXT VkExt::vkDestroyDebugUtilsMessengerEXT = nullptr;
-PFN_vkCreateAccelerationStructureNV VkExt::vkCreateAccerlerationStructureNV = nullptr;
+PFN_vkCreateAccelerationStructureNV VkExt::vkCreateAccelerationStructureNV = nullptr;
 PFN_vkDestroyAccelerationStructureNV VkExt::vkDestroyAccelerationStructureNV = nullptr;
 PFN_vkGetAccelerationStructureMemoryRequirementsNV VkExt::vkGetAccelerationStructureMemoryRequirementsNV = nullptr;
 PFN_vkBindAccelerationStructureMemoryNV VkExt::vkBindAccelerationStructureMemoryNV = nullptr;
@@ -30,7 +30,7 @@ VkResult VkExt::initProcs(Instance* instance) {
 }
 
 VkResult VkExt::initDeviceProcs(Device* device) {
-	if ((vkCreateAccerlerationStructureNV = (PFN_vkCreateAccelerationStructureNV) vkGetDeviceProcAddr(device->get(), "vkCreateAccelerationStructureNV")) == nullptr) {
+	if ((vkCreateAccelerationStructureNV = (PFN_vkCreateAccelerationStructureNV) vkGetDeviceProcAddr(device->get(), "vkCreateAccelerationStructureNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 

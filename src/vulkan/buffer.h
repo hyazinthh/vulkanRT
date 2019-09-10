@@ -6,7 +6,8 @@ class Device;
 
 class Buffer {
 	public:
-		Buffer(Device* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties = 0);
+		Buffer(Device* device, VkDeviceSize size, VkBufferUsageFlags usage, 
+			   VkMemoryPropertyFlags properties = 0);
 
 		~Buffer();
 
@@ -25,8 +26,6 @@ class Buffer {
 		void copyTo(Buffer* dest);
 
 	private:
-
-		uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 		Device* device;
 

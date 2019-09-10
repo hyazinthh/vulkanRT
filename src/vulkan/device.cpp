@@ -302,7 +302,8 @@ void Device::createDescriptorPool() {
 		//{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0},
 		//{VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 0},
 		//{VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 0},
-		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 32},
+		{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 32}
 		//{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
 		//{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0},
 		//{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 0},
@@ -312,7 +313,7 @@ void Device::createDescriptorPool() {
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	poolInfo.maxSets = 1000;
+	poolInfo.maxSets = 32;
 	poolInfo.poolSizeCount = _countof(poolSize);
 	poolInfo.pPoolSizes = poolSize;
 
@@ -389,4 +390,18 @@ void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
 	vkQueueWaitIdle(queue);
 
 	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+}
+
+uint32_t Device::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+	VkPhysicalDeviceMemoryProperties memProperties;
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+		if ((typeFilter & (1 << i))
+			&& (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+
+	throw std::runtime_error("Failed to find suitable memory type");
 }

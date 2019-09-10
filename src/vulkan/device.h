@@ -31,6 +31,8 @@ class Device {
 
 		void setClearDepthStencil(const VkClearDepthStencilValue& value) { clearDepthStencil = value; }
 
+		uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
 		VkDevice get() { return device; }
 
 		VkPhysicalDevice getPhysical() { return physicalDevice; }

@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\vulkan\rt\acceleration_structure.cpp" />
     <ClCompile Include="src\vulkan\buffer.cpp" />
     <ClCompile Include="src\application.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -30,6 +31,7 @@
     <ClCompile Include="src\vulkan\swap_chain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\vulkan\rt\acceleration_structure.h" />
     <ClInclude Include="src\vulkan\buffer.h" />
     <ClInclude Include="src\application.h" />
     <ClInclude Include="src\vulkan\device.h" />
