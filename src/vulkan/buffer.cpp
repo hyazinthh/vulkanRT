@@ -35,11 +35,30 @@ Buffer::~Buffer() {
 	vkFreeMemory(device->get(), memory, nullptr);
 }
 
+void Buffer::bindAsVertexBuffer(VkDeviceSize offset) {
+	VkDeviceSize offsets[] = { offset };
+	vkCmdBindVertexBuffers(device->getCommandBuffer(), 0, 1, &buffer, offsets);
+}
+
+void Buffer::bindAsIndexBuffer(VkIndexType indexType, VkDeviceSize offset) {
+	vkCmdBindIndexBuffer(device->getCommandBuffer(), buffer, offset, indexType);
+}
+
 void Buffer::fill(const void* data) {
 	void* buf;
 	vkMapMemory(device->get(), memory, 0, size, 0, &buf);
 	memcpy(buf, data, size);
 	vkUnmapMemory(device->get(), memory);
+}
+
+void Buffer::copyTo(Buffer* dest) {
+	VkCommandBuffer commandBuffer = device->beginSingleTimeCommands();
+
+	VkBufferCopy copyRegion = {};
+	copyRegion.size = size;
+	vkCmdCopyBuffer(commandBuffer, buffer, dest->get(), 1, &copyRegion);
+
+	device->endSingleTimeCommands(commandBuffer);
 }
 
 uint32_t Buffer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {

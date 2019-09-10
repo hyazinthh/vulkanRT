@@ -43,11 +43,7 @@ class Application {
 
 		void createSurface();
 
-		void createSwapchain();
-
 		void createPipeline();
-
-		void createSyncObjects();
 
 		void createBuffers();
 
@@ -67,17 +63,7 @@ class Application {
 
 		VkSurfaceKHR surface;
 
-		SwapChain* swapchain = nullptr;
-
 		Pipeline* pipeline = nullptr;
-
-		static const int MAX_FRAMES = 2;
-
-		VkSemaphore imageAvailableSemaphores[MAX_FRAMES];
-
-		VkSemaphore renderFinishedSemaphores[MAX_FRAMES];
-
-		VkFence frameFences[MAX_FRAMES];
 
 		Buffer* vertexBuffer;
 

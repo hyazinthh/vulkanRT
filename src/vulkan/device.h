@@ -9,51 +9,86 @@
 class Instance;
 typedef std::vector<std::string> Extensions;
 
-struct QueueFamilies {
-	std::optional<uint32_t> graphics;
-	std::optional<uint32_t> present;
-
-	bool isComplete() {
-		return graphics.has_value() && present.has_value();
-	}
-};
-
 class Device {
 	public:
 		Device(Instance* instance, int width, int height, VkSurfaceKHR surface, Extensions requiredExtensions);
 
 		~Device();
 
-		VkDevice get() const { return device; }
+		bool frameBegin();
 
-		VkPhysicalDevice getPhysical() const { return physicalDevice; }
+		void beginRenderPass();
 
-		VkSurfaceKHR getSurface() const { return surface; }
+		void endRenderPass();
+
+		void frameEnd();
+
+		void framePresent();
+
+		void setClearColor(const VkClearColorValue& value) { clearColor = value; }
+
+		void setClearDepthStencil(const VkClearDepthStencilValue& value) { clearDepthStencil = value; }
+
+		VkDevice get() { return device; }
+
+		VkPhysicalDevice getPhysical() { return physicalDevice; }
+
+		VkSurfaceKHR getSurface() { return surface; }
+
+		SwapChain* getSwapchain() { return swapchain; }
 
 		Extensions getExtensions() const {
 			return getExtensions(physicalDevice);
 		}
 
-		QueueFamilies getQueueFamilies() const {
-			return getQueueFamilies(physicalDevice);
+		uint32_t getQueueFamily() const {
+			return queueFamily;
 		}
 
-		VkQueue getGraphicsQueue() {
-			return graphicsQueue;
+		VkQueue getQueue() {
+			return queue;
 		}
 
-		VkQueue getPresentQueue() {
-			return presentQueue;
+		VkCommandPool getCommandPool() {
+			return commandPool;
 		}
 
-		SwapChain* createSwapChain(uint32_t width, uint32_t height);
+		VkCommandBuffer getCommandBuffer() {
+			return commandBuffers[frameIndex];
+		}
+
+		VkDescriptorPool getDescriptorPool() {
+			return descriptorPool;
+		}
+
+		VkRenderPass getRenderPass() {
+			return renderPass;
+		}
+
+		VkCommandBuffer beginSingleTimeCommands();
+
+		void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
 	private:
+		static const int MAX_FRAMES = 2;
+
+		void createCommandPool();
+
+		void createCommandBuffers();
+
+		void createSyncObjects();
+
+		void createRenderPass();
+
+		void createFramebuffers();
+
+		void createDescriptorPool();
+
 		Extensions getExtensions(VkPhysicalDevice device) const;
 
 		bool checkPhysicalDevice(VkPhysicalDevice device);
 
-		QueueFamilies getQueueFamilies(VkPhysicalDevice device) const;
+		std::optional<uint32_t> getQueueFamily(VkPhysicalDevice device) const;
 
 		void createLogicalDevice(VkPhysicalDevice device, int width, int height);
 
@@ -63,11 +98,37 @@ class Device {
 
 		VkSurfaceKHR surface;
 
-		QueueFamilies queueFamilies;
+		SwapChain* swapchain;
 
-		VkQueue graphicsQueue, presentQueue;
+		uint32_t queueFamily;
+
+		VkQueue queue;
 
 		Extensions requiredExtensions;
+
+		VkCommandPool commandPool;
+
+		VkCommandBuffer commandBuffers[MAX_FRAMES];
+
+		VkRenderPass renderPass;
+
+		std::vector<VkFramebuffer> framebuffers;
+
+		VkDescriptorPool descriptorPool;
+
+		uint32_t backBufferIndices[MAX_FRAMES];
+
+		VkSemaphore imageAvailableSemaphores[MAX_FRAMES];
+
+		VkSemaphore renderFinishedSemaphores[MAX_FRAMES];
+
+		VkFence frameFences[MAX_FRAMES];
+
+		VkClearColorValue clearColor;
+
+		VkClearDepthStencilValue clearDepthStencil;
+
+		int frameIndex = 0;
 };
 
 #endif

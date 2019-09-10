@@ -2,7 +2,7 @@
 #include "device.h"
 #include "vertex.h"
 
-Pipeline::Pipeline(Device* device, SwapChain* swapchain, Buffer* vertexBuffer, Buffer* indexBuffer, Shader* vertexShader, Shader* fragmentShader)
+Pipeline::Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader)
 	: device(device) {
 
 	auto vertexBindingDesc = Vertex::getBindingDescription();
@@ -23,14 +23,14 @@ Pipeline::Pipeline(Device* device, SwapChain* swapchain, Buffer* vertexBuffer, B
 	VkViewport viewport = {};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (float) swapchain->getExtent().width;
-	viewport.height = (float) swapchain->getExtent().height;
+	viewport.width = (float) device->getSwapchain()->getExtent().width;
+	viewport.height = (float) device->getSwapchain()->getExtent().height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor = {};
 	scissor.offset = { 0, 0 };
-	scissor.extent = swapchain->getExtent();
+	scissor.extent = device->getSwapchain()->getExtent();
 
 	VkPipelineViewportStateCreateInfo viewportState = {};
 	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -102,47 +102,6 @@ Pipeline::Pipeline(Device* device, SwapChain* swapchain, Buffer* vertexBuffer, B
 		throw std::runtime_error("Failed to create pipeline layout");
 	}
 
-	VkAttachmentDescription colorAttachment = {};
-	colorAttachment.format = swapchain->getFormat();
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference colorAttachmentRef = {};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass = {};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-
-	// Subpass dependency
-	VkSubpassDependency dependency = {};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-	VkRenderPassCreateInfo renderPassInfo = {};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = 1;
-	renderPassInfo.pDependencies = &dependency;
-
-	if (vkCreateRenderPass(device->get(), &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create render pass");
-	}
-
 	VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShader->getStageInfo(), fragmentShader->getStageInfo() };
 
 	VkGraphicsPipelineCreateInfo pipelineInfo = {};
@@ -158,7 +117,7 @@ Pipeline::Pipeline(Device* device, SwapChain* swapchain, Buffer* vertexBuffer, B
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = nullptr; // Optional
 	pipelineInfo.layout = layout;
-	pipelineInfo.renderPass = renderPass;
+	pipelineInfo.renderPass = device->getRenderPass();
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional
@@ -166,96 +125,13 @@ Pipeline::Pipeline(Device* device, SwapChain* swapchain, Buffer* vertexBuffer, B
 	if (vkCreateGraphicsPipelines(device->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create graphics pipeline");
 	}
-
-	// Frame buffers
-	framebuffers.resize(swapchain->getImageViews().size());
-
-	for (size_t i = 0; i < swapchain->getImageViews().size(); i++) {
-
-		VkFramebufferCreateInfo framebufferInfo = {};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPass;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = &swapchain->getImageViews()[i];
-		framebufferInfo.width = swapchain->getExtent().width;
-		framebufferInfo.height = swapchain->getExtent().height;
-		framebufferInfo.layers = 1;
-
-		if (vkCreateFramebuffer(device->get(), &framebufferInfo, nullptr, &framebuffers[i]) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create framebuffer");
-		}
-	}
-
-	// Command pool
-	VkCommandPoolCreateInfo poolInfo = {};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.queueFamilyIndex = device->getQueueFamilies().graphics.value();
-	poolInfo.flags = 0; // Optional
-
-	if (vkCreateCommandPool(device->get(), &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create command pool");
-	}
-
-	// Command buffers
-	commandBuffers.resize(framebuffers.size());
-
-	VkCommandBufferAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = commandPool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
-
-	if (vkAllocateCommandBuffers(device->get(), &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to allocate command buffers");
-	}
-
-	// Begin command buffers
-	for (size_t i = 0; i < commandBuffers.size(); i++) {
-		VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = 0; // Optional
-		beginInfo.pInheritanceInfo = nullptr; // Optional
-
-		if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to begin recording command buffer");
-		}
-
-		// Render pass
-		VkRenderPassBeginInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = renderPass;
-		renderPassInfo.framebuffer = framebuffers[i];
-		renderPassInfo.renderArea.offset = { 0, 0 };
-		renderPassInfo.renderArea.extent = swapchain->getExtent();
-
-		VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-		renderPassInfo.clearValueCount = 1;
-		renderPassInfo.pClearValues = &clearColor;
-
-		vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBuffer->get(), offsets);
-		vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer->get(), 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
-
-		vkCmdEndRenderPass(commandBuffers[i]);
-
-		if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to record command buffer");
-		}
-	}
 }
 
 Pipeline::~Pipeline() {
-	vkDestroyCommandPool(device->get(), commandPool, nullptr);
-
-	for (auto f : framebuffers) {
-		vkDestroyFramebuffer(device->get(), f, nullptr);
-	}
-
 	vkDestroyPipeline(device->get(), pipeline, nullptr);
 	vkDestroyPipelineLayout(device->get(), layout, nullptr);
-	vkDestroyRenderPass(device->get(), renderPass, nullptr);
+}
+
+void Pipeline::bind(VkPipelineBindPoint bindPoint) {
+	vkCmdBindPipeline(device->getCommandBuffer(), bindPoint, pipeline);
 }

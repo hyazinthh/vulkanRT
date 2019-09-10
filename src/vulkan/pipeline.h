@@ -9,28 +9,20 @@ class Device;
 
 class Pipeline {
 	public:
-		Pipeline(Device* device, SwapChain* swapchain, Buffer* vertexBuffer, Buffer* indexBuffer, Shader* vertexShader, Shader* fragmentShader);
+		Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader);
 
 		~Pipeline();
 
-		VkPipeline get() { return pipeline; }
+		void bind(VkPipelineBindPoint bindPoint);
 
-		const std::vector<VkCommandBuffer>& getCommandBuffers() { return commandBuffers;  }
+		VkPipeline get() { return pipeline; }
 
 	private:
 		Device* device;
 
 		VkPipelineLayout layout;
 
-		VkRenderPass renderPass;
-
 		VkPipeline pipeline;
-
-		std::vector<VkFramebuffer> framebuffers;
-
-		VkCommandPool commandPool;
-
-		std::vector<VkCommandBuffer> commandBuffers;
 };
 
 #endif // !PIPELINE_H_

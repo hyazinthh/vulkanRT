@@ -21,17 +21,7 @@ SwapChain::SwapChain(Device* device, VkSurfaceKHR surface, VkExtent2D extent, Vk
 	info.preTransform = capabilities.currentTransform;
 	info.presentMode = mode;
 	info.oldSwapchain = VK_NULL_HANDLE;
-
-	QueueFamilies families = device->getQueueFamilies();
-	uint32_t indices[] = { families.graphics.value(), families.present.value() };
-
-	if (families.graphics != families.present) {
-		info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		info.queueFamilyIndexCount = 2;
-		info.pQueueFamilyIndices = indices;
-	} else {
-		info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	}
+	info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	if (vkCreateSwapchainKHR(device->get(), &info, nullptr, &swapchain) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create swap chain");

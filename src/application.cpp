@@ -5,13 +5,14 @@
 #include <stdexcept>
 
 const std::vector<Vertex> vertices = {
-	{{0.0f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}},
+	{{-0.75f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
 	{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
-	{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}}
+	{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+	{{0.75f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}}
 };
 
 const std::vector<uint32_t> indices = {
-	0, 1, 2
+	0, 1, 2, 0, 3, 1
 };
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -53,10 +54,8 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createInstance();
 	createSurface();
 	createDevice();
-	createSwapchain();
 	createBuffers();
 	createPipeline();
-	createSyncObjects();
 }
 
 Application::~Application() {
@@ -64,14 +63,7 @@ Application::~Application() {
 	delete vertexBuffer;
 	delete indexBuffer;
 
-	for (int i = 0; i < MAX_FRAMES; i++) {
-		vkDestroySemaphore(device->get(), renderFinishedSemaphores[i], nullptr);
-		vkDestroySemaphore(device->get(), imageAvailableSemaphores[i], nullptr);
-		vkDestroyFence(device->get(), frameFences[i], nullptr);
-	}
-
 	delete pipeline;
-	delete swapchain;
 	delete device;
 	vkDestroySurfaceKHR(instance->get(), surface, nullptr);
 	delete instance;
@@ -82,52 +74,30 @@ Application::~Application() {
 void Application::run() {
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+
+		if (!device->frameBegin()) {
+			continue;
+		}
+
+		device->beginRenderPass();
+
 		draw();
+
+		device->endRenderPass();
+		device->frameEnd();
+		device->framePresent();
 	}
 
 	vkDeviceWaitIdle(device->get());
 }
 
 void Application::draw() {
-	static int currentFrame = 0;
+	pipeline->bind(VK_PIPELINE_BIND_POINT_GRAPHICS);
+	vertexBuffer->bindAsVertexBuffer();
+	indexBuffer->bindAsIndexBuffer(VK_INDEX_TYPE_UINT32);
 
-	vkWaitForFences(device->get(), 1, &frameFences[currentFrame], VK_TRUE, UINT64_MAX);
-
-	uint32_t imageIndex;
-	if (vkAcquireNextImageKHR(device->get(), swapchain->get(), UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex) != VK_SUCCESS) {
-		return;
-	}
-
-	vkResetFences(device->get(), 1, &frameFences[currentFrame]);
-
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &imageAvailableSemaphores[currentFrame];
-	submitInfo.pWaitDstStageMask = waitStages;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &pipeline->getCommandBuffers()[imageIndex];
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
-
-	if (vkQueueSubmit(device->getGraphicsQueue(), 1, &submitInfo, frameFences[currentFrame]) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to submit draw command buffer");
-	}
-
-	VkPresentInfoKHR presentInfo = {};
-	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &renderFinishedSemaphores[currentFrame];
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &swapchain->get();
-	presentInfo.pImageIndices = &imageIndex;
-	presentInfo.pResults = nullptr; // Optional
-
-	vkQueuePresentKHR(device->getPresentQueue(), &presentInfo);
-
-	currentFrame = (currentFrame + 1) % MAX_FRAMES;
+	uint32_t count = (uint32_t) indices.size();
+	vkCmdDrawIndexed(device->getCommandBuffer(), count, count / 3, 0, 0, 0);
 }
 
 void Application::queryExtensions() {
@@ -186,49 +156,40 @@ void Application::createSurface() {
 	}
 }
 
-void Application::createSwapchain() {
-	swapchain = device->createSwapChain(width, height);
-}
-
 void Application::createPipeline() {
 	auto vs = Shader::loadFromFile(device, "shaders/triangle.vert", Shader::Type::Vertex);
 	auto fs = Shader::loadFromFile(device, "shaders/triangle.frag", Shader::Type::Fragment);
 
-	pipeline = new Pipeline(device, swapchain, vertexBuffer, indexBuffer, vs, fs);
+	pipeline = new Pipeline(device, vs, fs);
 
 	delete fs;
 	delete vs;
 }
 
-void Application::createSyncObjects() {
-
-	VkSemaphoreCreateInfo semaphoreInfo = {};
-	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-	VkFenceCreateInfo fenceInfo = {};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-	for (int i = 0; i < MAX_FRAMES; i++) {
-		if (vkCreateSemaphore(device->get(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-			vkCreateSemaphore(device->get(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-			vkCreateFence(device->get(), &fenceInfo, nullptr, &frameFences[i]) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create synchronization objects");
-		}
-	}
-}
-
 void Application::createBuffers() {
+	{
+		Buffer localBuffer(device, sizeof(Vertex) * vertices.size(),
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
-	vertexBuffer = new Buffer(device, sizeof(Vertex) * vertices.size(), 
-						      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-						      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+		vertexBuffer = new Buffer(device, localBuffer.getSize(),
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 
-	vertexBuffer->fill(vertices.data());
+		localBuffer.fill(vertices.data());
+		localBuffer.copyTo(vertexBuffer);
+	}
 
-	indexBuffer = new Buffer(device, sizeof(uint32_t) * indices.size(),
-							 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-							 VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+	{
+		Buffer localBuffer(device, sizeof(uint32_t) * indices.size(),
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
-	indexBuffer->fill(indices.data());
+		indexBuffer = new Buffer(device, localBuffer.getSize(),
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+		localBuffer.fill(indices.data());
+		localBuffer.copyTo(indexBuffer);
+	}
 }

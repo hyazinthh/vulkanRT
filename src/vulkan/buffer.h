@@ -10,6 +10,10 @@ class Buffer {
 
 		~Buffer();
 
+		void bindAsVertexBuffer(VkDeviceSize offset = 0);
+
+		void bindAsIndexBuffer(VkIndexType indexType, VkDeviceSize offset = 0);
+
 		const VkBuffer& get() { return buffer; }
 
 		VkDeviceMemory getMemory() { return memory; }
@@ -17,6 +21,8 @@ class Buffer {
 		VkDeviceSize getSize() { return size; }
 
 		void fill(const void* data);
+
+		void copyTo(Buffer* dest);
 
 	private:
 
