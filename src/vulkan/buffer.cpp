@@ -1,7 +1,7 @@
 #include "buffer.h"
 #include "device.h"
 
-Buffer::Buffer(Device* device, VkDeviceSize size, VkMemoryPropertyFlags properties, VkBufferUsageFlags usage)
+Buffer::Buffer(Device* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 	: device(device), size(size) {
 
 	VkBufferCreateInfo bufferInfo = {};

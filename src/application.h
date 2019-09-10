@@ -20,6 +20,8 @@ class Application {
 		~Application();
 
 		void run();
+
+		void update(float dt);
 		
 		void draw();
 
@@ -47,6 +49,10 @@ class Application {
 
 		void createBuffers();
 
+		void createDescriptorSetLayout();
+
+		void createDescriptorSets();
+
 		void queryExtensions();
 
 		Extensions getRequiredExtensions(bool debug);
@@ -68,6 +74,12 @@ class Application {
 		Buffer* vertexBuffer;
 
 		Buffer* indexBuffer;
+
+		Buffer* uniformBuffer;
+
+		VkDescriptorSetLayout descriptorSetLayout;
+
+		VkDescriptorSet descriptorSet;
 };
 
 #endif

@@ -6,11 +6,11 @@
 #include <fstream>
 #include <sstream>
 
-Shader::Shader(Device* device, const std::string& src, Type type) : device(device), type(type) {
+Shader::Shader(Device* device, const std::string& name, const std::string& src, Type type) : device(device), type(type) {
 	shaderc::Compiler compiler;
 	shaderc::CompileOptions options;
 
-	auto spv = compile(prepare(src, compiler, options), compiler, options);
+	auto spv = compile(name, prepare(name, src, compiler, options), compiler, options);
 
 	VkShaderModuleCreateInfo moduleInfo = {};
 	moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -32,22 +32,22 @@ Shader::~Shader() {
 	vkDestroyShaderModule(device->get(), module, nullptr);
 }
 
-std::string Shader::prepare(const std::string& src, shaderc::Compiler& compiler, shaderc::CompileOptions& options) {
-	auto result = compiler.PreprocessGlsl(src, getKind(), "", options);
+std::string Shader::prepare(const std::string& name, const std::string& src, shaderc::Compiler& compiler, shaderc::CompileOptions& options) {
+	auto result = compiler.PreprocessGlsl(src, getKind(), name.c_str(), options);
 
 	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-		std::cout << "shaderc" << result.GetErrorMessage() << std::endl;
+		std::cout << result.GetErrorMessage() << std::endl;
 		throw std::runtime_error("Failed to prepare shader");
 	}
 
 	return { result.begin(), result.end() };
 }
 
-std::vector<uint32_t> Shader::compile(const std::string& src, shaderc::Compiler& compiler, shaderc::CompileOptions& options) {
-	auto result = compiler.CompileGlslToSpv(src, getKind(), "", "main", options);
+std::vector<uint32_t> Shader::compile(const std::string& name, const std::string& src, shaderc::Compiler& compiler, shaderc::CompileOptions& options) {
+	auto result = compiler.CompileGlslToSpv(src, getKind(), name.c_str(), "main", options);
 
 	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-		std::cout << "shaderc" << result.GetErrorMessage() << std::endl;
+		std::cout << result.GetErrorMessage() << std::endl;
 		throw std::runtime_error("Failed to compile shader");
 	}
 
@@ -107,5 +107,5 @@ Shader* Shader::loadFromFile(Device* device, const std::string& path, Type type)
 	std::stringstream buffer;
 	buffer << f.rdbuf();
 
-	return new Shader(device, buffer.str(), type);
+	return new Shader(device, path, buffer.str(), type);
 }

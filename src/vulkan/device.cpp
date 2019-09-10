@@ -112,6 +112,10 @@ void Device::framePresent() {
 	frameIndex = (frameIndex + 1) % MAX_FRAMES;
 }
 
+void Device::bindDescriptorSet(VkDescriptorSet descriptorSet, VkPipelineLayout pipelineLayout, VkPipelineBindPoint bindPoint) {
+	vkCmdBindDescriptorSets(getCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+}
+
 Extensions Device::getExtensions(VkPhysicalDevice device) const {
 	uint32_t count = 0;
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);

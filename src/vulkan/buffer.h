@@ -6,7 +6,7 @@ class Device;
 
 class Buffer {
 	public:
-		Buffer(Device* device, VkDeviceSize size, VkMemoryPropertyFlags properties, VkBufferUsageFlags usage);
+		Buffer(Device* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties = 0);
 
 		~Buffer();
 

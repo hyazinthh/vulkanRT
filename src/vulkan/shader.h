@@ -23,7 +23,7 @@ class Shader {
 			Callable
 		};
 
-		Shader(Device* device, const std::string& src, Type type);
+		Shader(Device* device, const std::string& name, const std::string& src, Type type);
 
 		~Shader();
 
@@ -35,9 +35,9 @@ class Shader {
 
 	private:
 	
-		std::string prepare(const std::string& src, shaderc::Compiler& compiler, shaderc::CompileOptions& options);
+		std::string prepare(const std::string& name, const std::string& src, shaderc::Compiler& compiler, shaderc::CompileOptions& options);
 
-		std::vector<uint32_t> compile(const std::string& src, shaderc::Compiler& compiler, shaderc::CompileOptions& options);
+		std::vector<uint32_t> compile(const std::string& name, const std::string& src, shaderc::Compiler& compiler, shaderc::CompileOptions& options);
 
 		shaderc_shader_kind getKind();
 

@@ -25,6 +25,8 @@ class Device {
 
 		void framePresent();
 
+		void bindDescriptorSet(VkDescriptorSet descriptorSet, VkPipelineLayout pipelineLayout, VkPipelineBindPoint bindPoint);
+
 		void setClearColor(const VkClearColorValue& value) { clearColor = value; }
 
 		void setClearDepthStencil(const VkClearDepthStencilValue& value) { clearDepthStencil = value; }
