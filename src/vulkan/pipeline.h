@@ -1,5 +1,4 @@
-#ifndef PIPELINE_H_
-#define PIPELINE_H_
+#pragma once
 
 #include "shader.h"
 #include "swap_chain.h"
@@ -11,7 +10,7 @@ class Pipeline {
 	public:
 		Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader, const VkDescriptorSetLayout& descriptorSetLayout);
 
-		~Pipeline();
+		virtual ~Pipeline();
 
 		void bind(VkPipelineBindPoint bindPoint);
 
@@ -19,12 +18,12 @@ class Pipeline {
 
 		VkPipelineLayout getLayout() { return layout; }
 
-	private:
-		Device* device;
+	protected:
+		Pipeline(Device* device, const VkDescriptorSetLayout& descriptorSetLayout);
 
-		VkPipelineLayout layout;
+		Device* device = nullptr;
 
-		VkPipeline pipeline;
+		VkPipelineLayout layout = VK_NULL_HANDLE;
+
+		VkPipeline pipeline = VK_NULL_HANDLE;
 };
-
-#endif // !PIPELINE_H_

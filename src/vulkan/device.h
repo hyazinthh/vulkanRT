@@ -1,5 +1,4 @@
-#ifndef DEVICE_H_
-#define DEVICE_H_
+#pragma once
 
 #include <vulkan/vulkan.hpp>
 #include <optional>
@@ -96,43 +95,41 @@ class Device {
 
 		void createLogicalDevice(VkPhysicalDevice device, int width, int height);
 
-		VkDevice device;
+		VkDevice device = VK_NULL_HANDLE;
 
-		VkPhysicalDevice physicalDevice;
+		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
-		VkSurfaceKHR surface;
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
-		SwapChain* swapchain;
+		SwapChain* swapchain = nullptr;
 
 		uint32_t queueFamily;
 
-		VkQueue queue;
+		VkQueue queue = VK_NULL_HANDLE;
 
 		Extensions requiredExtensions;
 
-		VkCommandPool commandPool;
+		VkCommandPool commandPool = VK_NULL_HANDLE;
 
-		VkCommandBuffer commandBuffers[MAX_FRAMES];
+		VkCommandBuffer commandBuffers[MAX_FRAMES] = { VK_NULL_HANDLE };
 
-		VkRenderPass renderPass;
+		VkRenderPass renderPass = VK_NULL_HANDLE;
 
 		std::vector<VkFramebuffer> framebuffers;
 
-		VkDescriptorPool descriptorPool;
+		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 
 		uint32_t backBufferIndices[MAX_FRAMES];
 
-		VkSemaphore imageAvailableSemaphores[MAX_FRAMES];
+		VkSemaphore imageAvailableSemaphores[MAX_FRAMES] = { VK_NULL_HANDLE };
 
-		VkSemaphore renderFinishedSemaphores[MAX_FRAMES];
+		VkSemaphore renderFinishedSemaphores[MAX_FRAMES] = { VK_NULL_HANDLE };
 
-		VkFence frameFences[MAX_FRAMES];
+		VkFence frameFences[MAX_FRAMES] = { VK_NULL_HANDLE };
 
-		VkClearColorValue clearColor;
+		VkClearColorValue clearColor = {};
 
-		VkClearDepthStencilValue clearDepthStencil;
+		VkClearDepthStencilValue clearDepthStencil = {};
 
 		int frameIndex = 0;
 };
-
-#endif

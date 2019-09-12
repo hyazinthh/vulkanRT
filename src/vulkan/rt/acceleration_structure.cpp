@@ -157,6 +157,16 @@ void AccelerationStructure::generate() {
 		instancesBuffer ? instancesBuffer->get() : VK_NULL_HANDLE, 
 		0, false, accelerationStructure, VK_NULL_HANDLE, scratchBuffer.get(), 0);
 
+	VkMemoryBarrier memoryBarrier;
+	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+	memoryBarrier.pNext = nullptr;
+	memoryBarrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+	memoryBarrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+
+	// TODO: Needed for single time command buffer?
+	vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+		VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+
 	device->endSingleTimeCommands(cmdBuffer);
 }
 

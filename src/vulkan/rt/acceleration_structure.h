@@ -56,21 +56,21 @@ class AccelerationStructure {
 
 		void generate();
 
-		Device* device;
+		Device* device = nullptr;
 
 		std::vector<VkGeometryNV> geometries;
 
-		VkAccelerationStructureNV accelerationStructure;
+		VkAccelerationStructureNV accelerationStructure = VK_NULL_HANDLE;
 
-		VkAccelerationStructureInfoNV info;
+		VkAccelerationStructureInfoNV info = {};
 
-		VkMemoryRequirements resultMemoryRequirements;
+		VkMemoryRequirements resultMemoryRequirements = {};
 
-		VkMemoryRequirements buildMemoryRequirements;
+		VkMemoryRequirements buildMemoryRequirements = {};
 
-		VkMemoryRequirements updateMemoryRequirements;
+		VkMemoryRequirements updateMemoryRequirements = {};
 
-		VkDeviceMemory resultMemory;
+		VkDeviceMemory resultMemory = VK_NULL_HANDLE;
 
 		std::vector<Instance> instances;
 };

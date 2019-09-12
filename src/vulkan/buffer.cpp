@@ -44,11 +44,20 @@ void Buffer::bindAsIndexBuffer(VkIndexType indexType, VkDeviceSize offset) {
 	vkCmdBindIndexBuffer(device->getCommandBuffer(), buffer, offset, indexType);
 }
 
-void Buffer::fill(const void* data) {
-	void* buf;
-	vkMapMemory(device->get(), memory, 0, size, 0, &buf);
-	memcpy(buf, data, size);
+void* Buffer::map() {
+	void* data;
+	vkMapMemory(device->get(), memory, 0, size, 0, &data);
+	return data;
+}
+
+void Buffer::unmap() {
 	vkUnmapMemory(device->get(), memory);
+}
+
+void Buffer::fill(const void* data) {
+	void* buf = map();
+	memcpy(buf, data, size);
+	unmap();
 }
 
 void Buffer::copyTo(Buffer* dest) {

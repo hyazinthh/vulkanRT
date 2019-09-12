@@ -1,5 +1,4 @@
-#ifndef SWAP_CHAIN_H_
-#define SWAP_CHAIN_H_
+#pragma once
 
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -23,17 +22,15 @@ class SwapChain {
 		const std::vector<VkImageView>& getImageViews() { return imageViews; }
 
 	private:
-		Device* device;
+		Device* device = nullptr;
 
-		VkSwapchainKHR swapchain;
+		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
 		std::vector<VkImage> images;
 
 		std::vector<VkImageView> imageViews;
 
-		VkFormat format;
+		VkFormat format = VK_FORMAT_UNDEFINED;
 
-		VkExtent2D extent;
+		VkExtent2D extent = {};
 };
-
-#endif

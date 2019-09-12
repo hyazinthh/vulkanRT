@@ -1,5 +1,4 @@
-#ifndef EXTENSIONS_H_
-#define EXTENSIONS_H_
+#pragma once
 
 #include "instance.h"
 #include "device.h"
@@ -19,9 +18,7 @@ namespace VkExt {
 	extern PFN_vkGetAccelerationStructureHandleNV vkGetAccelerationStructureHandleNV;
 	extern PFN_vkCmdWriteAccelerationStructuresPropertiesNV vkCmdWriteAccelerationStructuresPropertiesNV;
 	extern PFN_vkCompileDeferredNV vkCompileDeferredNV;
-	
+
 	VkResult initProcs(Instance* instance);
 	VkResult initDeviceProcs(Device* device);
 }
-
-#endif

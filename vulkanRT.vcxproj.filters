@@ -11,6 +11,8 @@
     <ClCompile Include="src\vulkan\pipeline.cpp" />
     <ClCompile Include="src\vulkan\buffer.cpp" />
     <ClCompile Include="src\vulkan\rt\acceleration_structure.cpp" />
+    <ClCompile Include="src\vulkan\rt\raytracing_pipeline.cpp" />
+    <ClCompile Include="src\vulkan\rt\shader_binding_table.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\application.h" />
@@ -23,6 +25,8 @@
     <ClInclude Include="src\vulkan\vertex.h" />
     <ClInclude Include="src\vulkan\buffer.h" />
     <ClInclude Include="src\vulkan\rt\acceleration_structure.h" />
+    <ClInclude Include="src\vulkan\rt\raytracing_pipeline.h" />
+    <ClInclude Include="src\vulkan\rt\shader_binding_table.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\triangle.vert" />

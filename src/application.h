@@ -1,5 +1,4 @@
-#ifndef APPLICATION_H_
-#define APPLICATION_H_
+#pragma once
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -8,10 +7,11 @@
 #include "vulkan/instance.h"
 #include "vulkan/device.h"
 #include "vulkan/swap_chain.h"
-#include "vulkan/pipeline.h"
 #include "vulkan/buffer.h"
 #include "vulkan/vertex.h"
 #include "vulkan/rt/acceleration_structure.h"
+#include "vulkan/rt/raytracing_pipeline.h"
+#include "vulkan/rt/shader_binding_table.h"
 
 class Application {
 	public:
@@ -48,6 +48,8 @@ class Application {
 
 		void createPipeline();
 
+		void createShaderBindingTable();
+
 		void createBuffers();
 
 		void createDescriptorSetLayout();
@@ -68,19 +70,19 @@ class Application {
 
 		Device* device = nullptr;
 
-		VkSurfaceKHR surface;
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
 		Pipeline* pipeline = nullptr;
 
-		Buffer* vertexBuffer;
+		ShaderBindingTable* sbt = nullptr;
 
-		Buffer* indexBuffer;
+		Buffer* vertexBuffer = nullptr;
 
-		Buffer* uniformBuffer;
+		Buffer* indexBuffer = nullptr;
 
-		VkDescriptorSetLayout descriptorSetLayout;
+		Buffer* uniformBuffer = nullptr;
 
-		VkDescriptorSet descriptorSet;
+		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+
+		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 };
-
-#endif

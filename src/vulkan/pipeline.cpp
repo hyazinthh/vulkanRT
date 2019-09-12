@@ -2,8 +2,23 @@
 #include "device.h"
 #include "vertex.h"
 
-Pipeline::Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader, const VkDescriptorSetLayout& descriptorSetLayout)
+Pipeline::Pipeline(Device* device, const VkDescriptorSetLayout& descriptorSetLayout) 
 	: device(device) {
+
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
+	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+
+	if (vkCreatePipelineLayout(device->get(), &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create pipeline layout");
+	}
+}
+
+Pipeline::Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader, const VkDescriptorSetLayout& descriptorSetLayout)
+	: Pipeline(device, descriptorSetLayout) {
 
 	auto vertexBindingDesc = Vertex::getBindingDescription();
 	auto vertexAttrDesc = Vertex::getAttributeDescription();
@@ -90,17 +105,6 @@ Pipeline::Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader,
 	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	dynamicState.dynamicStateCount = 2;
 	dynamicState.pDynamicStates = dynamicStates;
-
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 1;
-	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
-
-	if (vkCreatePipelineLayout(device->get(), &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create pipeline layout");
-	}
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShader->getStageInfo(), fragmentShader->getStageInfo() };
 

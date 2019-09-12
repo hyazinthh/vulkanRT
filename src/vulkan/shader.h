@@ -1,5 +1,4 @@
-#ifndef SHADER_H_
-#define SHADER_H_
+#pragma once
 
 #include <string>
 #include <vulkan/vulkan.h>
@@ -31,6 +30,8 @@ class Shader {
 
 		VkPipelineShaderStageCreateInfo getStageInfo() { return stageInfo; }
 
+		Type getType() { return type; }
+
 		static Shader* loadFromFile(Device* device, const std::string& path, Type type);
 
 	private:
@@ -43,13 +44,11 @@ class Shader {
 
 		VkShaderStageFlagBits getStageFlagBits();
 
-		Device* device;
+		Device* device = nullptr;
 
 		Type type;
 
-		VkShaderModule module;
+		VkShaderModule module = VK_NULL_HANDLE;
 
-		VkPipelineShaderStageCreateInfo stageInfo;
+		VkPipelineShaderStageCreateInfo stageInfo = {};
 };
-
-#endif

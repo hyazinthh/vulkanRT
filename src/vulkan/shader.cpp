@@ -21,7 +21,6 @@ Shader::Shader(Device* device, const std::string& name, const std::string& src, 
 		throw std::runtime_error("Failed to create shader module");
 	}
 
-	stageInfo = {};
 	stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	stageInfo.stage = getStageFlagBits();
 	stageInfo.module = module;

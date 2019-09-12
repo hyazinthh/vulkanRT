@@ -1,5 +1,4 @@
-#ifndef INSTANCE_H_
-#define INSTANCE_H_
+#pragma once
 
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -29,13 +28,11 @@ class Instance {
 	private:
 		bool registerDebugCallback();
 
-		Application* application;
+		Application* application = nullptr;
 
-		DebugCallback debugCallback;
+		DebugCallback debugCallback = nullptr;
 
-		VkInstance instance;
+		VkInstance instance = VK_NULL_HANDLE;
 
-		VkDebugUtilsMessengerEXT debugMessenger;
+		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 };
-
-#endif

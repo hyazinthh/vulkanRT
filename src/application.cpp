@@ -26,6 +26,12 @@ struct UniformBufferObject {
 	glm::mat4 proj;
 };
 
+uint32_t rayGenIndex;
+
+uint32_t missIndex;
+
+uint32_t hitGroupIndex;
+
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 											 VkDebugUtilsMessageTypeFlagsEXT messageType,
 											 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -69,6 +75,7 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createDescriptorSetLayout();
 	createDescriptorSets();
 	createPipeline();
+	createShaderBindingTable();
 }
 
 Application::~Application() {
@@ -79,6 +86,7 @@ Application::~Application() {
 	delete vertexBuffer;
 	delete indexBuffer;
 
+	delete sbt;
 	delete pipeline;
 	delete device;
 	vkDestroySurfaceKHR(instance->get(), surface, nullptr);
@@ -125,13 +133,13 @@ void Application::run() {
 }
 
 void Application::draw() {
-	pipeline->bind(VK_PIPELINE_BIND_POINT_GRAPHICS);
+	pipeline->bind(VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
 	vertexBuffer->bindAsVertexBuffer();
 	indexBuffer->bindAsIndexBuffer(VK_INDEX_TYPE_UINT32);
-	device->bindDescriptorSet(descriptorSet, pipeline->getLayout(), VK_PIPELINE_BIND_POINT_GRAPHICS);
+	device->bindDescriptorSet(descriptorSet, pipeline->getLayout(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
 
-	uint32_t count = (uint32_t) indices.size();
-	vkCmdDrawIndexed(device->getCommandBuffer(), count, count / 3, 0, 0, 0);
+	//uint32_t count = (uint32_t) indices.size();
+	//vkCmdDrawIndexed(device->getCommandBuffer(), count, count / 3, 0, 0, 0);
 }
 
 void Application::queryExtensions() {
@@ -191,13 +199,30 @@ void Application::createSurface() {
 }
 
 void Application::createPipeline() {
-	auto vs = Shader::loadFromFile(device, "shaders/triangle.vert", Shader::Type::Vertex);
-	auto fs = Shader::loadFromFile(device, "shaders/triangle.frag", Shader::Type::Fragment);
 
-	pipeline = new Pipeline(device, vs, fs, descriptorSetLayout);
+	std::unique_ptr<Shader> shaderMiss(Shader::loadFromFile(device, "shaders/ray_miss.rmiss", Shader::Type::Miss));
+	std::unique_ptr<Shader> shaderClosestHit(Shader::loadFromFile(device, "shaders/ray_chit.rchit", Shader::Type::ClosestHit));
+	std::unique_ptr<Shader> shaderRayGen(Shader::loadFromFile(device, "shaders/ray_gen.rgen", Shader::Type::RayGen));
 
-	delete fs;
-	delete vs;
+	RaytracingPipeline* pipeline = new RaytracingPipeline(device, descriptorSetLayout);
+
+	rayGenIndex = pipeline->addShaderStage(shaderRayGen.get());
+	missIndex = pipeline->addShaderStage(shaderMiss.get());
+
+	hitGroupIndex = pipeline->startHitGroup();
+	pipeline->addHitShaderStage(shaderClosestHit.get());
+	pipeline->endHitGroup();
+
+	this->pipeline = pipeline->create();
+}
+
+void Application::createShaderBindingTable() {
+	sbt = new ShaderBindingTable(device, pipeline);
+	sbt->addEntry(ShaderBindingTable::EntryType::RayGen, rayGenIndex);
+	sbt->addEntry(ShaderBindingTable::EntryType::Miss, missIndex);
+	sbt->addEntry(ShaderBindingTable::EntryType::HitGroup, hitGroupIndex);
+
+	sbt->create();
 }
 
 void Application::createBuffers() {
