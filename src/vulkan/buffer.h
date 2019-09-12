@@ -15,7 +15,7 @@ class Buffer {
 
 		void bindAsIndexBuffer(VkIndexType indexType, VkDeviceSize offset = 0);
 
-		const VkBuffer& get() { return buffer; }
+		operator VkBuffer() { return buffer; }
 
 		VkDeviceMemory getMemory() { return memory; }
 

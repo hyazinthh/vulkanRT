@@ -11,7 +11,7 @@ AccelerationStructure::AccelerationStructure(Device* device, VkAccelerationStruc
 	createInfo.compactedSize = 0;
 	createInfo.info = info;
 
-	if (VkExt::vkCreateAccelerationStructureNV(device->get(), &createInfo, nullptr, &accelerationStructure) != VK_SUCCESS) {
+	if (VkExt::vkCreateAccelerationStructureNV(*device, &createInfo, nullptr, &accelerationStructure) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create acceleration structure");
 	}
 
@@ -20,8 +20,8 @@ AccelerationStructure::AccelerationStructure(Device* device, VkAccelerationStruc
 }
 
 AccelerationStructure::~AccelerationStructure() {
-	vkFreeMemory(device->get(), resultMemory, nullptr);
-	VkExt::vkDestroyAccelerationStructureNV(device->get(), accelerationStructure, nullptr);
+	vkFreeMemory(*device, resultMemory, nullptr);
+	VkExt::vkDestroyAccelerationStructureNV(*device, accelerationStructure, nullptr);
 }
 
 AccelerationStructure* AccelerationStructure::createBottomLevel(Device* device,
@@ -34,12 +34,12 @@ AccelerationStructure* AccelerationStructure::createBottomLevel(Device* device,
 	geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_NV;
 	geometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
 	geometry.geometry.triangles.pNext = nullptr;
-	geometry.geometry.triangles.vertexData = vertexBuffer->get();
+	geometry.geometry.triangles.vertexData = *vertexBuffer;
 	geometry.geometry.triangles.vertexOffset = 0;
 	geometry.geometry.triangles.vertexCount = vertexCount;
 	geometry.geometry.triangles.vertexStride = vertexStride;
 	geometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-	geometry.geometry.triangles.indexData = indexBuffer->get();
+	geometry.geometry.triangles.indexData = *indexBuffer;
 	geometry.geometry.triangles.indexOffset = 0;
 	geometry.geometry.triangles.indexCount = indexCount;
 	geometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
@@ -80,17 +80,17 @@ void AccelerationStructure::computeMemoryRequirements() {
 
 	// Result size
 	VkMemoryRequirements2 req;
-	VkExt::vkGetAccelerationStructureMemoryRequirementsNV(device->get(), &memoryRequirementsInfo, &req);
+	VkExt::vkGetAccelerationStructureMemoryRequirementsNV(*device, &memoryRequirementsInfo, &req);
 	resultMemoryRequirements = req.memoryRequirements;
 
 	// Build size
 	memoryRequirementsInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV;
-	VkExt::vkGetAccelerationStructureMemoryRequirementsNV(device->get(), &memoryRequirementsInfo, &req);
+	VkExt::vkGetAccelerationStructureMemoryRequirementsNV(*device, &memoryRequirementsInfo, &req);
 	buildMemoryRequirements = req.memoryRequirements;
 
 	// Update size
 	memoryRequirementsInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV;
-	VkExt::vkGetAccelerationStructureMemoryRequirementsNV(device->get(), &memoryRequirementsInfo, &req);
+	VkExt::vkGetAccelerationStructureMemoryRequirementsNV(*device, &memoryRequirementsInfo, &req);
 	updateMemoryRequirements = req.memoryRequirements;
 }
 
@@ -101,7 +101,7 @@ void AccelerationStructure::generate() {
 		allocInfo.allocationSize = resultMemoryRequirements.size;
 		allocInfo.memoryTypeIndex = device->findMemoryType(resultMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		if (vkAllocateMemory(device->get(), &allocInfo, nullptr, &resultMemory) != VK_SUCCESS) {
+		if (vkAllocateMemory(*device, &allocInfo, nullptr, &resultMemory) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate acceleration structure result memory");
 		}
 	}
@@ -111,7 +111,7 @@ void AccelerationStructure::generate() {
 
 	for (const auto& inst : instances) {
 		uint64_t handle = 0;
-		if (VkExt::vkGetAccelerationStructureHandleNV(device->get(), inst.bottomLevelAS->get(), sizeof(uint64_t), &handle) != VK_SUCCESS) {
+		if (VkExt::vkGetAccelerationStructureHandleNV(*device, *inst.bottomLevelAS, sizeof(uint64_t), &handle) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to get acceleration structure handle");
 		}
 
@@ -148,14 +148,14 @@ void AccelerationStructure::generate() {
 	bindInfo.deviceIndexCount = 0;
 	bindInfo.pDeviceIndices = nullptr;
 
-	VkExt::vkBindAccelerationStructureMemoryNV(device->get(), 1, &bindInfo);
+	VkExt::vkBindAccelerationStructureMemoryNV(*device, 1, &bindInfo);
 
 	Buffer scratchBuffer(device, buildMemoryRequirements.size, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	auto cmdBuffer = device->beginSingleTimeCommands();
 	VkExt::vkCmdBuildAccelerationStructureNV(cmdBuffer, &info, 
-		instancesBuffer ? instancesBuffer->get() : VK_NULL_HANDLE, 
-		0, false, accelerationStructure, VK_NULL_HANDLE, scratchBuffer.get(), 0);
+		instancesBuffer ? *instancesBuffer : VK_NULL_HANDLE, 
+		0, false, accelerationStructure, VK_NULL_HANDLE, scratchBuffer, 0);
 
 	VkMemoryBarrier memoryBarrier;
 	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;

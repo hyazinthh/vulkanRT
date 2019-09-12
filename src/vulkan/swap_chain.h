@@ -11,7 +11,7 @@ class SwapChain {
 
 		~SwapChain();
 
-		const VkSwapchainKHR& get() { return swapchain; }
+		operator VkSwapchainKHR() { return swapchain; }
 
 		const VkFormat& getFormat() { return format; }
 

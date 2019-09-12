@@ -1,13 +1,19 @@
 #version 460
 #extension GL_NV_ray_tracing : require
 
-layout(set = 0, binding = 0) uniform accelerationStructureNV Scene;
-layout(set = 0, binding = 1, rgba8) uniform image2D ResultImage;
+layout(set = 0, binding = 0) uniform accelerationStructureNV scene;
+layout(set = 0, binding = 1, rgba8) uniform image2D resultImage;
+layout(set = 0, binding = 2) uniform UniformBufferObject {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+} ubo;
 
 layout(location = 0) rayPayloadNV vec3 ResultColor;
 
 void main() {
-    const vec2 uv = vec2(gl_LaunchIDNV.xy) / vec2(gl_LaunchSizeNV.xy - 1);
+    imageStore(resultImage, ivec2(gl_LaunchIDNV.xy), vec4(0.5, 0.5, 0.5, 1.0));
+    /*const vec2 uv = vec2(gl_LaunchIDNV.xy) / vec2(gl_LaunchSizeNV.xy - 1);
 
     const vec3 origin = vec3(uv.x, 1.0f - uv.y, -1.0f);
     const vec3 direction = vec3(0.0f, 0.0f, 1.0f);
@@ -33,5 +39,5 @@ void main() {
             tmax,
             payloadLocation);
 
-    imageStore(ResultImage, ivec2(gl_LaunchIDNV.xy), vec4(ResultColor, 1.0f));
+    imageStore(ResultImage, ivec2(gl_LaunchIDNV.xy), vec4(ResultColor, 1.0f));*/
 }

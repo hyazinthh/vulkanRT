@@ -32,7 +32,10 @@ class Device {
 
 		uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-		VkDevice get() { return device; }
+		void imageBarrier(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange& subresourceRange,
+			VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+		operator VkDevice() { return device; }
 
 		VkPhysicalDevice getPhysical() { return physicalDevice; }
 
@@ -58,6 +61,14 @@ class Device {
 
 		VkCommandBuffer getCommandBuffer() {
 			return commandBuffers[frameIndex];
+		}
+
+		VkImage getBackBuffer() {
+			return swapchain->getImages()[backBufferIndices[frameIndex]];
+		}
+
+		VkImageView getBackBufferView() {
+			return swapchain->getImageViews()[backBufferIndices[frameIndex]];
 		}
 
 		VkDescriptorPool getDescriptorPool() {
@@ -127,7 +138,7 @@ class Device {
 
 		VkFence frameFences[MAX_FRAMES] = { VK_NULL_HANDLE };
 
-		VkClearColorValue clearColor = {};
+		VkClearColorValue clearColor = { 1.0f, 0.0f, 0.0f, 1.0f };
 
 		VkClearDepthStencilValue clearDepthStencil = {};
 

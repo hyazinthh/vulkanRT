@@ -14,7 +14,7 @@ class Pipeline {
 
 		void bind(VkPipelineBindPoint bindPoint);
 
-		VkPipeline get() { return pipeline; }
+		operator VkPipeline() { return pipeline; }
 
 		VkPipelineLayout getLayout() { return layout; }
 

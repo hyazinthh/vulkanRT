@@ -35,6 +35,8 @@ class ShaderBindingTable {
 
 		ShaderBindingTable* create();
 
+		Buffer* getBuffer() { return buffer; }
+
 		VkDeviceSize getSectionSize(EntryType type) const;
 
 		VkDeviceSize getEntrySize(EntryType type) const;

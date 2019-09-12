@@ -17,11 +17,11 @@ PFN_vkCompileDeferredNV VkExt::vkCompileDeferredNV = nullptr;
 
 VkResult VkExt::initProcs(Instance* instance) {
 	if (instance->isDebug()) {
-		if ((vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance->get(), "vkCreateDebugUtilsMessengerEXT")) == nullptr) {
+		if ((vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(*instance, "vkCreateDebugUtilsMessengerEXT")) == nullptr) {
 			return VK_ERROR_EXTENSION_NOT_PRESENT;
 		}
 
-		if ((vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance->get(), "vkDestroyDebugUtilsMessengerEXT")) == nullptr) {
+		if ((vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(*instance, "vkDestroyDebugUtilsMessengerEXT")) == nullptr) {
 			return VK_ERROR_EXTENSION_NOT_PRESENT;
 		}
 	}
@@ -30,51 +30,51 @@ VkResult VkExt::initProcs(Instance* instance) {
 }
 
 VkResult VkExt::initDeviceProcs(Device* device) {
-	if ((vkCreateAccelerationStructureNV = (PFN_vkCreateAccelerationStructureNV) vkGetDeviceProcAddr(device->get(), "vkCreateAccelerationStructureNV")) == nullptr) {
+	if ((vkCreateAccelerationStructureNV = (PFN_vkCreateAccelerationStructureNV) vkGetDeviceProcAddr(*device, "vkCreateAccelerationStructureNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkDestroyAccelerationStructureNV = (PFN_vkDestroyAccelerationStructureNV) vkGetDeviceProcAddr(device->get(), "vkDestroyAccelerationStructureNV")) == nullptr) {
+	if ((vkDestroyAccelerationStructureNV = (PFN_vkDestroyAccelerationStructureNV) vkGetDeviceProcAddr(*device, "vkDestroyAccelerationStructureNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkGetAccelerationStructureMemoryRequirementsNV = (PFN_vkGetAccelerationStructureMemoryRequirementsNV) vkGetDeviceProcAddr(device->get(), "vkGetAccelerationStructureMemoryRequirementsNV")) == nullptr) {
+	if ((vkGetAccelerationStructureMemoryRequirementsNV = (PFN_vkGetAccelerationStructureMemoryRequirementsNV) vkGetDeviceProcAddr(*device, "vkGetAccelerationStructureMemoryRequirementsNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkBindAccelerationStructureMemoryNV = (PFN_vkBindAccelerationStructureMemoryNV) vkGetDeviceProcAddr(device->get(), "vkBindAccelerationStructureMemoryNV")) == nullptr) {
+	if ((vkBindAccelerationStructureMemoryNV = (PFN_vkBindAccelerationStructureMemoryNV) vkGetDeviceProcAddr(*device, "vkBindAccelerationStructureMemoryNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkCmdBuildAccelerationStructureNV = (PFN_vkCmdBuildAccelerationStructureNV) vkGetDeviceProcAddr(device->get(), "vkCmdBuildAccelerationStructureNV")) == nullptr) {
+	if ((vkCmdBuildAccelerationStructureNV = (PFN_vkCmdBuildAccelerationStructureNV) vkGetDeviceProcAddr(*device, "vkCmdBuildAccelerationStructureNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkCmdCopyAccelerationStructureNV = (PFN_vkCmdCopyAccelerationStructureNV) vkGetDeviceProcAddr(device->get(), "vkCmdCopyAccelerationStructureNV")) == nullptr) {
+	if ((vkCmdCopyAccelerationStructureNV = (PFN_vkCmdCopyAccelerationStructureNV) vkGetDeviceProcAddr(*device, "vkCmdCopyAccelerationStructureNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkCmdTraceRaysNV = (PFN_vkCmdTraceRaysNV) vkGetDeviceProcAddr(device->get(), "vkCmdTraceRaysNV")) == nullptr) {
+	if ((vkCmdTraceRaysNV = (PFN_vkCmdTraceRaysNV) vkGetDeviceProcAddr(*device, "vkCmdTraceRaysNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkCreateRayTracingPipelinesNV = (PFN_vkCreateRayTracingPipelinesNV) vkGetDeviceProcAddr(device->get(), "vkCreateRayTracingPipelinesNV")) == nullptr) {
+	if ((vkCreateRayTracingPipelinesNV = (PFN_vkCreateRayTracingPipelinesNV) vkGetDeviceProcAddr(*device, "vkCreateRayTracingPipelinesNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkGetRayTracingShaderGroupHandlesNV = (PFN_vkGetRayTracingShaderGroupHandlesNV) vkGetDeviceProcAddr(device->get(), "vkGetRayTracingShaderGroupHandlesNV")) == nullptr) {
+	if ((vkGetRayTracingShaderGroupHandlesNV = (PFN_vkGetRayTracingShaderGroupHandlesNV) vkGetDeviceProcAddr(*device, "vkGetRayTracingShaderGroupHandlesNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkGetAccelerationStructureHandleNV = (PFN_vkGetAccelerationStructureHandleNV) vkGetDeviceProcAddr(device->get(), "vkGetAccelerationStructureHandleNV")) == nullptr) {
+	if ((vkGetAccelerationStructureHandleNV = (PFN_vkGetAccelerationStructureHandleNV) vkGetDeviceProcAddr(*device, "vkGetAccelerationStructureHandleNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkCmdWriteAccelerationStructuresPropertiesNV = (PFN_vkCmdWriteAccelerationStructuresPropertiesNV) vkGetDeviceProcAddr(device->get(), "vkCmdWriteAccelerationStructuresPropertiesNV")) == nullptr) {
+	if ((vkCmdWriteAccelerationStructuresPropertiesNV = (PFN_vkCmdWriteAccelerationStructuresPropertiesNV) vkGetDeviceProcAddr(*device, "vkCmdWriteAccelerationStructuresPropertiesNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 
-	if ((vkCompileDeferredNV = (PFN_vkCompileDeferredNV) vkGetDeviceProcAddr(device->get(), "vkCompileDeferredNV")) == nullptr) {
+	if ((vkCompileDeferredNV = (PFN_vkCompileDeferredNV) vkGetDeviceProcAddr(*device, "vkCompileDeferredNV")) == nullptr) {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 

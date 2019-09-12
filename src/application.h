@@ -50,11 +50,15 @@ class Application {
 
 		void createShaderBindingTable();
 
+		void createAccelerationStructures();
+
 		void createBuffers();
 
 		void createDescriptorSetLayout();
 
 		void createDescriptorSets();
+
+		void updateRaytracingRenderTarget();
 
 		void queryExtensions();
 
@@ -74,7 +78,11 @@ class Application {
 
 		Pipeline* pipeline = nullptr;
 
-		ShaderBindingTable* sbt = nullptr;
+		ShaderBindingTable* shaderBindingTable = nullptr;
+
+		AccelerationStructure* bottomLevelAS = nullptr;
+
+		AccelerationStructure* topLevelAS = nullptr;
 
 		Buffer* vertexBuffer = nullptr;
 

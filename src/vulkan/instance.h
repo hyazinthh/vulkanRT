@@ -17,7 +17,7 @@ class Instance {
 
 		~Instance();
 
-		VkInstance get() { return instance; }
+		operator VkInstance() { return instance; }
 
 		bool isDebug() const { return debugCallback != nullptr; }
 

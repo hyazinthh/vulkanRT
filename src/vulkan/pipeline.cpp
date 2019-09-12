@@ -12,7 +12,7 @@ Pipeline::Pipeline(Device* device, const VkDescriptorSetLayout& descriptorSetLay
 	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
 	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-	if (vkCreatePipelineLayout(device->get(), &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS) {
+	if (vkCreatePipelineLayout(*device, &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create pipeline layout");
 	}
 }
@@ -126,14 +126,14 @@ Pipeline::Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader,
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional
 
-	if (vkCreateGraphicsPipelines(device->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
+	if (vkCreateGraphicsPipelines(*device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create graphics pipeline");
 	}
 }
 
 Pipeline::~Pipeline() {
-	vkDestroyPipeline(device->get(), pipeline, nullptr);
-	vkDestroyPipelineLayout(device->get(), layout, nullptr);
+	vkDestroyPipeline(*device, pipeline, nullptr);
+	vkDestroyPipelineLayout(*device, layout, nullptr);
 }
 
 void Pipeline::bind(VkPipelineBindPoint bindPoint) {

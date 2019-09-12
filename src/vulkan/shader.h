@@ -26,7 +26,7 @@ class Shader {
 
 		~Shader();
 
-		VkShaderModule getModule() { return module; }
+		operator VkShaderModule() { return module; }
 
 		VkPipelineShaderStageCreateInfo getStageInfo() { return stageInfo; }
 

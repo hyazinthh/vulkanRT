@@ -25,7 +25,7 @@ ShaderBindingTable* ShaderBindingTable::create() {
 
 	ByteArray shaderHandles(groupCount * shaderGroupHandleSize);
 
-	if (VkExt::vkGetRayTracingShaderGroupHandlesNV(device->get(), pipeline->get(), 0, groupCount, 
+	if (VkExt::vkGetRayTracingShaderGroupHandlesNV(*device, *pipeline, 0, groupCount, 
 												   (uint32_t) shaderHandles.size(), shaderHandles.data()) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to get raytracing shader group handles");
 	}

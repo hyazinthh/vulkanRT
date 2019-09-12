@@ -94,7 +94,7 @@ RaytracingPipeline* RaytracingPipeline::create() {
 	info.basePipelineHandle = VK_NULL_HANDLE;
 	info.basePipelineIndex = 0;
 
-	if (VkExt::vkCreateRayTracingPipelinesNV(device->get(), VK_NULL_HANDLE, 1, &info, nullptr, &pipeline) != VK_SUCCESS) {
+	if (VkExt::vkCreateRayTracingPipelinesNV(*device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create raytracing pipeline");
 	}
 

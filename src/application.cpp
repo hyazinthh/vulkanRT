@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <chrono>
 
+#include "vulkan/extensions.h"
+
 const std::vector<Vertex> vertices = {
 	{{-0.75f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
 	{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
@@ -72,6 +74,7 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createSurface();
 	createDevice();
 	createBuffers();
+	createAccelerationStructures();
 	createDescriptorSetLayout();
 	createDescriptorSets();
 	createPipeline();
@@ -80,16 +83,19 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 
 Application::~Application() {
 
-	vkDestroyDescriptorSetLayout(device->get(), descriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(*device, descriptorSetLayout, nullptr);
+
+	delete topLevelAS;
+	delete bottomLevelAS;
 
 	delete uniformBuffer;
 	delete vertexBuffer;
 	delete indexBuffer;
 
-	delete sbt;
+	delete shaderBindingTable;
 	delete pipeline;
 	delete device;
-	vkDestroySurfaceKHR(instance->get(), surface, nullptr);
+	vkDestroySurfaceKHR(*instance, surface, nullptr);
 	delete instance;
 	glfwDestroyWindow(window);
 	glfwTerminate();
@@ -117,9 +123,11 @@ void Application::run() {
 		update(std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastTime).count());
 
 		if (!device->frameBegin()) {
+			std::cout << "frameBegin() failed!" << std::endl;
 			continue;
 		}
 
+		updateRaytracingRenderTarget();
 		device->beginRenderPass();
 
 		draw();
@@ -129,7 +137,7 @@ void Application::run() {
 		device->framePresent();
 	}
 
-	vkDeviceWaitIdle(device->get());
+	vkDeviceWaitIdle(*device);
 }
 
 void Application::draw() {
@@ -137,6 +145,16 @@ void Application::draw() {
 	vertexBuffer->bindAsVertexBuffer();
 	indexBuffer->bindAsIndexBuffer(VK_INDEX_TYPE_UINT32);
 	device->bindDescriptorSet(descriptorSet, pipeline->getLayout(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
+
+	auto rg = ShaderBindingTable::EntryType::RayGen;
+	auto miss = ShaderBindingTable::EntryType::Miss;
+	auto hitGroup = ShaderBindingTable::EntryType::HitGroup;
+
+	VkExt::vkCmdTraceRaysNV(device->getCommandBuffer(),
+		*shaderBindingTable->getBuffer(), shaderBindingTable->getOffset(rg),
+		*shaderBindingTable->getBuffer(), shaderBindingTable->getOffset(miss), shaderBindingTable->getEntrySize(miss),
+		*shaderBindingTable->getBuffer(), shaderBindingTable->getOffset(hitGroup), shaderBindingTable->getEntrySize(hitGroup),
+		VK_NULL_HANDLE, 0, 0, width, height, 1);
 
 	//uint32_t count = (uint32_t) indices.size();
 	//vkCmdDrawIndexed(device->getCommandBuffer(), count, count / 3, 0, 0, 0);
@@ -193,7 +211,7 @@ void Application::createDevice() {
 }
 
 void Application::createSurface() {
-	if (glfwCreateWindowSurface(instance->get(), window, nullptr, &surface) != VK_SUCCESS) {
+	if (glfwCreateWindowSurface(*instance, window, nullptr, &surface) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create window surface");
 	}
 }
@@ -217,12 +235,23 @@ void Application::createPipeline() {
 }
 
 void Application::createShaderBindingTable() {
-	sbt = new ShaderBindingTable(device, pipeline);
-	sbt->addEntry(ShaderBindingTable::EntryType::RayGen, rayGenIndex);
-	sbt->addEntry(ShaderBindingTable::EntryType::Miss, missIndex);
-	sbt->addEntry(ShaderBindingTable::EntryType::HitGroup, hitGroupIndex);
+	shaderBindingTable = new ShaderBindingTable(device, pipeline);
+	shaderBindingTable->addEntry(ShaderBindingTable::EntryType::RayGen, rayGenIndex);
+	shaderBindingTable->addEntry(ShaderBindingTable::EntryType::Miss, missIndex);
+	shaderBindingTable->addEntry(ShaderBindingTable::EntryType::HitGroup, hitGroupIndex);
 
-	sbt->create();
+	shaderBindingTable->create();
+}
+
+void Application::createAccelerationStructures() {
+	bottomLevelAS = AccelerationStructure::createBottomLevel(device, 
+						vertexBuffer, (uint32_t) vertices.size(), sizeof(Vertex),
+						indexBuffer, (uint32_t) indices.size());
+
+	std::vector<AccelerationStructure::Instance> instances;
+	instances.push_back(AccelerationStructure::Instance(bottomLevelAS, 0, 0));
+
+	topLevelAS = AccelerationStructure::createTopLevel(device, instances);
 }
 
 void Application::createBuffers() {
@@ -261,19 +290,35 @@ void Application::createBuffers() {
 
 void Application::createDescriptorSetLayout() {
 
-	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-	uboLayoutBinding.binding = 0;
-	uboLayoutBinding.descriptorCount = 1;
-	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboLayoutBinding.pImmutableSamplers = nullptr;
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	VkDescriptorSetLayoutBinding accelerationStructureBinding = {};
+	accelerationStructureBinding.binding = 0;
+	accelerationStructureBinding.descriptorCount = 1;
+	accelerationStructureBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+	accelerationStructureBinding.pImmutableSamplers = nullptr;
+	accelerationStructureBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+	VkDescriptorSetLayoutBinding imageBufferBinding = {};
+	imageBufferBinding.binding = 1;
+	imageBufferBinding.descriptorCount = 1;
+	imageBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	imageBufferBinding.pImmutableSamplers = nullptr;
+	imageBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+
+	VkDescriptorSetLayoutBinding uboBinding = {};
+	uboBinding.binding = 2;
+	uboBinding.descriptorCount = 1;
+	uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboBinding.pImmutableSamplers = nullptr;
+	uboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { accelerationStructureBinding, imageBufferBinding, uboBinding };
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &uboLayoutBinding;
+	layoutInfo.bindingCount = (uint32_t) bindings.size();
+	layoutInfo.pBindings = bindings.data();
 
-	if (vkCreateDescriptorSetLayout(device->get(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(*device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor set layout");
 	}
 }
@@ -285,23 +330,77 @@ void Application::createDescriptorSets() {
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts = &descriptorSetLayout;
 
-	if (vkAllocateDescriptorSets(device->get(), &allocInfo, &descriptorSet) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(*device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate descriptor set");
 	}
 
-	VkDescriptorBufferInfo bufferInfo = {};
-	bufferInfo.buffer = uniformBuffer->get();
-	bufferInfo.offset = 0;
-	bufferInfo.range = VK_WHOLE_SIZE;
+	std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+
+	{
+		VkAccelerationStructureNV as = *topLevelAS;
+
+		VkWriteDescriptorSetAccelerationStructureNV wdsAccelerationStructure = {};
+		wdsAccelerationStructure.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+		wdsAccelerationStructure.accelerationStructureCount = 1;
+		wdsAccelerationStructure.pAccelerationStructures = &as;
+
+		VkWriteDescriptorSet wds = {};
+		wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		wds.pNext = &wdsAccelerationStructure;
+		wds.dstSet = descriptorSet;
+		wds.dstBinding = 0;
+		wds.descriptorCount = 1;
+		wds.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+
+		writeDescriptorSets.push_back(wds);
+	}
+
+	{
+		VkDescriptorBufferInfo info = {};
+		info.buffer = *uniformBuffer;
+		info.offset = 0;
+		info.range = VK_WHOLE_SIZE;
+
+		VkWriteDescriptorSet wds = {};
+		wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		wds.dstSet = descriptorSet;
+		wds.dstArrayElement = 0;
+		wds.descriptorCount = 1;
+		wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		wds.dstBinding = 2;
+		wds.pBufferInfo = &info;
+
+		writeDescriptorSets.push_back(wds);
+	}
+
+	vkUpdateDescriptorSets(*device, (uint32_t) writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+}
+
+void Application::updateRaytracingRenderTarget() {
+
+	VkImageSubresourceRange subresourceRange;
+	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresourceRange.baseMipLevel = 0;
+	subresourceRange.levelCount = 1;
+	subresourceRange.baseArrayLayer = 0;
+	subresourceRange.layerCount = 1;
+
+	device->imageBarrier(device->getCommandBuffer(), device->getBackBuffer(), subresourceRange,
+		0, VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+	VkDescriptorImageInfo info;
+	info.imageView = device->getBackBufferView();
+	info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	info.sampler = VK_NULL_HANDLE;
 
 	VkWriteDescriptorSet wds = {};
 	wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	wds.dstSet = descriptorSet;
 	wds.dstArrayElement = 0;
 	wds.descriptorCount = 1;
-	wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	wds.dstBinding = 0;
-	wds.pBufferInfo = &bufferInfo;
-	
-	vkUpdateDescriptorSets(device->get(), 1, &wds, 0, nullptr);
+	wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	wds.dstBinding = 1;
+	wds.pImageInfo = &info;
+
+	vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
 }

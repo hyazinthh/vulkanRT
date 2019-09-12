@@ -17,22 +17,22 @@ SwapChain::SwapChain(Device* device, VkSurfaceKHR surface, VkExtent2D extent, Vk
 	info.imageColorSpace = colorSpace;
 	info.imageExtent = extent;
 	info.imageArrayLayers = 1;
-	info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 	info.preTransform = capabilities.currentTransform;
 	info.presentMode = mode;
 	info.oldSwapchain = VK_NULL_HANDLE;
 	info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	if (vkCreateSwapchainKHR(device->get(), &info, nullptr, &swapchain) != VK_SUCCESS) {
+	if (vkCreateSwapchainKHR(*device, &info, nullptr, &swapchain) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create swap chain");
 	}
 
 	// Images
 	uint32_t imageCount = 0;
-	vkGetSwapchainImagesKHR(device->get(), swapchain, &imageCount, nullptr);
+	vkGetSwapchainImagesKHR(*device, swapchain, &imageCount, nullptr);
 
 	images.resize(imageCount);
-	vkGetSwapchainImagesKHR(device->get(), swapchain, &imageCount, images.data());
+	vkGetSwapchainImagesKHR(*device, swapchain, &imageCount, images.data());
 
 	// Images views
 	imageViews.resize(images.size());
@@ -53,7 +53,7 @@ SwapChain::SwapChain(Device* device, VkSurfaceKHR surface, VkExtent2D extent, Vk
 		info.subresourceRange.baseArrayLayer = 0;
 		info.subresourceRange.layerCount = 1;
 
-		if (vkCreateImageView(device->get(), &info, nullptr, &imageViews[i]) != VK_SUCCESS) {
+		if (vkCreateImageView(*device, &info, nullptr, &imageViews[i]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create image views!");
 		}
 	}
@@ -61,8 +61,8 @@ SwapChain::SwapChain(Device* device, VkSurfaceKHR surface, VkExtent2D extent, Vk
 
 SwapChain::~SwapChain() {
 	for (auto& v : imageViews) {
-		vkDestroyImageView(device->get(), v, nullptr);
+		vkDestroyImageView(*device, v, nullptr);
 	}
 
-	vkDestroySwapchainKHR(device->get(), swapchain, nullptr);
+	vkDestroySwapchainKHR(*device, swapchain, nullptr);
 }

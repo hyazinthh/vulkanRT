@@ -17,7 +17,7 @@ Shader::Shader(Device* device, const std::string& name, const std::string& src, 
 	moduleInfo.codeSize = spv.size() * sizeof(uint32_t);
 	moduleInfo.pCode = spv.data();
 	
-	if (vkCreateShaderModule(device->get(), &moduleInfo, nullptr, &module) != VK_SUCCESS) {
+	if (vkCreateShaderModule(*device, &moduleInfo, nullptr, &module) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create shader module");
 	}
 
@@ -28,7 +28,7 @@ Shader::Shader(Device* device, const std::string& name, const std::string& src, 
 }
 
 Shader::~Shader() {
-	vkDestroyShaderModule(device->get(), module, nullptr);
+	vkDestroyShaderModule(*device, module, nullptr);
 }
 
 std::string Shader::prepare(const std::string& name, const std::string& src, shaderc::Compiler& compiler, shaderc::CompileOptions& options) {

@@ -7,10 +7,10 @@
 Device::Device(Instance* instance, int width, int height, VkSurfaceKHR surface, Extensions requiredExtensions)
 	: surface(surface), requiredExtensions(requiredExtensions) {
 	uint32_t count = 0;
-	vkEnumeratePhysicalDevices(instance->get(), &count, nullptr);
+	vkEnumeratePhysicalDevices(*instance, &count, nullptr);
 
 	std::vector<VkPhysicalDevice> devices(count);
-	vkEnumeratePhysicalDevices(instance->get(), &count, devices.data());
+	vkEnumeratePhysicalDevices(*instance, &count, devices.data());
 
 	for (auto& d : devices) {
 		if (checkPhysicalDevice(d)) {
@@ -48,7 +48,7 @@ bool Device::frameBegin() {
 
 	vkWaitForFences(device, 1, &frameFences[frameIndex], VK_TRUE, UINT64_MAX);
 
-	if (vkAcquireNextImageKHR(device, swapchain->get(), UINT64_MAX,
+	if (vkAcquireNextImageKHR(device, *swapchain, UINT64_MAX,
 						      imageAvailableSemaphores[frameIndex], VK_NULL_HANDLE,
 							  &backBufferIndices[frameIndex]) != VK_SUCCESS) {
 		return false;
@@ -83,7 +83,7 @@ void Device::endRenderPass() {
 }
 
 void Device::frameEnd() {
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV };
 	VkSubmitInfo info = {};
 	info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	info.waitSemaphoreCount = 1;
@@ -100,12 +100,14 @@ void Device::frameEnd() {
 }
 
 void Device::framePresent() {
+	VkSwapchainKHR swapchains[] = { *swapchain };
+
 	VkPresentInfoKHR info = {};
 	info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	info.waitSemaphoreCount = 1;
 	info.pWaitSemaphores = &renderFinishedSemaphores[frameIndex];
 	info.swapchainCount = 1;
-	info.pSwapchains = &swapchain->get();
+	info.pSwapchains = swapchains;
 	info.pImageIndices = &backBufferIndices[frameIndex];
 	vkQueuePresentKHR(queue, &info);
 
@@ -404,4 +406,23 @@ uint32_t Device::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 	}
 
 	throw std::runtime_error("Failed to find suitable memory type");
+}
+
+void Device::imageBarrier(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange& subresourceRange,
+	VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldLayout, VkImageLayout newLayout) {
+
+	VkImageMemoryBarrier barrier;
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.pNext = nullptr;
+	barrier.srcAccessMask = srcAccessMask;
+	barrier.dstAccessMask = dstAccessMask;
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = image;
+	barrier.subresourceRange = subresourceRange;
+
+	vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }

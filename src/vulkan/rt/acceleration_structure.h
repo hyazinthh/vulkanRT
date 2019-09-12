@@ -29,7 +29,7 @@ class AccelerationStructure {
 
 		static AccelerationStructure* createTopLevel(Device* device, const std::vector<Instance>& instances);
 
-		VkAccelerationStructureNV get() { return accelerationStructure; }
+		operator VkAccelerationStructureNV() { return accelerationStructure; }
 
 	private:
 
