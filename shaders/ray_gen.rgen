@@ -8,7 +8,7 @@ layout(set = 0, binding = 2) uniform UniformBufferObject {
     mat4 projInverse;
 } camera;
 
-layout(location = 0) rayPayloadNV vec3 ResultColor;
+layout(location = 0) rayPayloadNV vec4 resultColor;
 
 void main() {
     const vec2 pixelCenter = vec2(gl_LaunchIDNV.xy) + vec2(0.5);
@@ -26,5 +26,5 @@ void main() {
 
     traceNV(scene, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
 
-    imageStore(resultImage, ivec2(gl_LaunchIDNV.xy), vec4(ResultColor, 1.0f));
+    imageStore(resultImage, ivec2(gl_LaunchIDNV.xy), resultColor);
 }

@@ -12,10 +12,10 @@
 #include "vulkan/extensions.h"
 
 const std::vector<Vertex> vertices = {
-	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
-	{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
-	{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
-	{{0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}}
+	Vertex({-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}),
+	Vertex({0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}),
+	Vertex({-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}),
+	Vertex({0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f})
 };
 
 const std::vector<uint32_t> indices = {
@@ -265,7 +265,7 @@ void Application::createBuffers() {
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		vertexBuffer = new Buffer(device, localBuffer.getSize(),
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		localBuffer.fill(vertices.data());
@@ -278,7 +278,7 @@ void Application::createBuffers() {
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		indexBuffer = new Buffer(device, localBuffer.getSize(),
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		localBuffer.fill(indices.data());
@@ -294,28 +294,67 @@ void Application::createBuffers() {
 
 VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 
-	VkDescriptorSetLayoutBinding accelerationStructureBinding = {};
-	accelerationStructureBinding.binding = 0;
-	accelerationStructureBinding.descriptorCount = 1;
-	accelerationStructureBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
-	accelerationStructureBinding.pImmutableSamplers = nullptr;
-	accelerationStructureBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	bindings.clear();
 
-	VkDescriptorSetLayoutBinding imageBufferBinding = {};
-	imageBufferBinding.binding = 1;
-	imageBufferBinding.descriptorCount = 1;
-	imageBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	imageBufferBinding.pImmutableSamplers = nullptr;
-	imageBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+	// Acceleration structure
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = 0;
+		b.descriptorCount = 1;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
 
-	VkDescriptorSetLayoutBinding uboBinding = {};
-	uboBinding.binding = 2;
-	uboBinding.descriptorCount = 1;
-	uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboBinding.pImmutableSamplers = nullptr;
-	uboBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+		bindings.push_back(b);
+	}
 
-	bindings = { accelerationStructureBinding, imageBufferBinding, uboBinding };
+	// Result image
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = 1;
+		b.descriptorCount = 1;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+
+		bindings.push_back(b);
+	}
+
+	// Camera uniform buffer
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = 2;
+		b.descriptorCount = 1;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+
+		bindings.push_back(b);
+	}
+
+	// Vertex buffer
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = 3;
+		b.descriptorCount = 1;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+		bindings.push_back(b);
+	}
+
+	// Index buffer
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = 4;
+		b.descriptorCount = 1;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+		bindings.push_back(b);
+	}
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -328,43 +367,79 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 void Application::writeDescriptorSets() {
 	std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
-	for (const auto& ds : device->getDescriptorSets())
-	{
-		VkAccelerationStructureNV as = *topLevelAS;
+	for (const auto& ds : device->getDescriptorSets()) {
+		{
+			VkAccelerationStructureNV as = *topLevelAS;
 
-		VkWriteDescriptorSetAccelerationStructureNV wdsAccelerationStructure = {};
-		wdsAccelerationStructure.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
-		wdsAccelerationStructure.accelerationStructureCount = 1;
-		wdsAccelerationStructure.pAccelerationStructures = &as;
+			VkWriteDescriptorSetAccelerationStructureNV wdsAccelerationStructure = {};
+			wdsAccelerationStructure.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+			wdsAccelerationStructure.accelerationStructureCount = 1;
+			wdsAccelerationStructure.pAccelerationStructures = &as;
 
-		VkWriteDescriptorSet wds = {};
-		wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		wds.pNext = &wdsAccelerationStructure;
-		wds.dstSet = ds;
-		wds.dstBinding = 0;
-		wds.descriptorCount = 1;
-		wds.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.pNext = &wdsAccelerationStructure;
+			wds.dstSet = ds;
+			wds.dstBinding = 0;
+			wds.descriptorCount = 1;
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
 
-		writeDescriptorSets.push_back(wds);
-	}
+			writeDescriptorSets.push_back(wds);
+		}
 
-	for (const auto& ds : device->getDescriptorSets())
-	{
-		VkDescriptorBufferInfo info = {};
-		info.buffer = *uniformBuffer;
-		info.offset = 0;
-		info.range = VK_WHOLE_SIZE;
+		{
+			VkDescriptorBufferInfo info = {};
+			info.buffer = *uniformBuffer;
+			info.offset = 0;
+			info.range = VK_WHOLE_SIZE;
 
-		VkWriteDescriptorSet wds = {};
-		wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		wds.dstSet = ds;
-		wds.dstArrayElement = 0;
-		wds.descriptorCount = 1;
-		wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		wds.dstBinding = 2;
-		wds.pBufferInfo = &info;
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.dstSet = ds;
+			wds.dstArrayElement = 0;
+			wds.descriptorCount = 1;
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			wds.dstBinding = 2;
+			wds.pBufferInfo = &info;
 
-		writeDescriptorSets.push_back(wds);
+			writeDescriptorSets.push_back(wds);
+		}
+
+		{
+			VkDescriptorBufferInfo info = {};
+			info.buffer = *vertexBuffer;
+			info.offset = 0;
+			info.range = VK_WHOLE_SIZE;
+
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.dstSet = ds;
+			wds.dstArrayElement = 0;
+			wds.descriptorCount = 1;
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			wds.dstBinding = 3;
+			wds.pBufferInfo = &info;
+
+			writeDescriptorSets.push_back(wds);
+		}
+
+		{
+			VkDescriptorBufferInfo info = {};
+			info.buffer = *indexBuffer;
+			info.offset = 0;
+			info.range = VK_WHOLE_SIZE;
+
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.dstSet = ds;
+			wds.dstArrayElement = 0;
+			wds.descriptorCount = 1;
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			wds.dstBinding = 4;
+			wds.pBufferInfo = &info;
+
+			writeDescriptorSets.push_back(wds);
+		}
 	}
 
 	vkUpdateDescriptorSets(*device, (uint32_t) writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);

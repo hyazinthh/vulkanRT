@@ -5,8 +5,13 @@
 #include <array>
 
 struct Vertex {
-	glm::vec3 position;
+	glm::vec4 position;
 	glm::vec4 color;
+
+	Vertex(const glm::vec3& p, const glm::vec3& c) {
+		position = glm::vec4(p, 1.0f);
+		color = glm::vec4(c, 1.0f);
+	}
 
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription desc = {};
