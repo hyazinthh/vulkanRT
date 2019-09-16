@@ -9,7 +9,8 @@
 #include "vulkan/swap_chain.h"
 #include "vulkan/buffer.h"
 #include "vulkan/vertex.h"
-#include "vulkan/rt/acceleration_structure.h"
+#include "vulkan/rt/top_level_as.h"
+#include "vulkan/rt/bottom_level_as.h"
 #include "vulkan/rt/raytracing_pipeline.h"
 #include "vulkan/rt/shader_binding_table.h"
 
@@ -88,9 +89,9 @@ class Application {
 
 		ShaderBindingTable* shaderBindingTable = nullptr;
 
-		AccelerationStructure* bottomLevelAS = nullptr;
+		BottomLevelAS* bottomLevelAS = nullptr;
 
-		AccelerationStructure* topLevelAS = nullptr;
+		TopLevelAS* topLevelAS = nullptr;
 
 		Buffer* vertexBuffer = nullptr;
 

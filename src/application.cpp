@@ -12,10 +12,10 @@
 #include "vulkan/extensions.h"
 
 const std::vector<Vertex> vertices = {
-	{{-0.75f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
 	{{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
 	{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
-	{{0.75f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}}
+	{{0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}}
 };
 
 const std::vector<uint32_t> indices = {
@@ -23,9 +23,8 @@ const std::vector<uint32_t> indices = {
 };
 
 struct UniformBufferObject {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
+	glm::mat4 viewInverse;
+	glm::mat4 projInverse;
 };
 
 uint32_t rayGenIndex;
@@ -100,13 +99,21 @@ Application::~Application() {
 
 void Application::update(float dt) {
 
+	// Update acceleration structure
+	auto model = glm::rotate(glm::mat4(1.0f), dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	std::vector<TopLevelAS::Instance> instances;
+	instances.push_back(TopLevelAS::Instance(bottomLevelAS, 0, 0, model));
+
+	topLevelAS->update(instances);
+
+	// Update matrices
 	auto ext = device->getSwapchain()->getExtent();
 
 	UniformBufferObject ubo = {};
-	ubo.model = glm::rotate(glm::mat4(1.0f), dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), ext.width / (float) ext.height, 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1;
+	ubo.viewInverse = glm::inverse(glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+	ubo.projInverse = glm::inverse(glm::perspective(glm::radians(45.0f), ext.width / (float) ext.height, 0.1f, 10.0f));
+	ubo.projInverse[1][1] *= -1;
 
 	uniformBuffer->fill(&ubo);
 }
@@ -139,8 +146,8 @@ void Application::run() {
 
 void Application::draw() {
 	pipeline->bind(VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
-	vertexBuffer->bindAsVertexBuffer();
-	indexBuffer->bindAsIndexBuffer(VK_INDEX_TYPE_UINT32);
+	//vertexBuffer->bindAsVertexBuffer();
+	//indexBuffer->bindAsIndexBuffer(VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(device->getCommandBuffer(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline->getLayout(),
 		0, 1, &device->getDescriptorSet(), 0, nullptr);
@@ -241,14 +248,14 @@ void Application::createShaderBindingTable() {
 }
 
 void Application::createAccelerationStructures() {
-	bottomLevelAS = AccelerationStructure::createBottomLevel(device, 
+	bottomLevelAS = new BottomLevelAS(device, 
 						vertexBuffer, (uint32_t) vertices.size(), sizeof(Vertex),
 						indexBuffer, (uint32_t) indices.size());
 
-	std::vector<AccelerationStructure::Instance> instances;
-	instances.push_back(AccelerationStructure::Instance(bottomLevelAS, 0, 0));
+	std::vector<TopLevelAS::Instance> instances;
+	instances.push_back(TopLevelAS::Instance(bottomLevelAS, 0, 0));
 
-	topLevelAS = AccelerationStructure::createTopLevel(device, instances);
+	topLevelAS = new TopLevelAS(device, instances, true);
 }
 
 void Application::createBuffers() {
@@ -306,7 +313,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	uboBinding.descriptorCount = 1;
 	uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	uboBinding.pImmutableSamplers = nullptr;
-	uboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
 
 	bindings = { accelerationStructureBinding, imageBufferBinding, uboBinding };
 

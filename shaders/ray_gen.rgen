@@ -4,40 +4,27 @@
 layout(set = 0, binding = 0) uniform accelerationStructureNV scene;
 layout(set = 0, binding = 1, rgba8) uniform image2D resultImage;
 layout(set = 0, binding = 2) uniform UniformBufferObject {
-    mat4 model;
-    mat4 view;
-    mat4 proj;
-} ubo;
+    mat4 viewInverse;
+    mat4 projInverse;
+} camera;
 
 layout(location = 0) rayPayloadNV vec3 ResultColor;
 
 void main() {
-    imageStore(resultImage, ivec2(gl_LaunchIDNV.xy), vec4(0.5, 0.5, 0.5, 1.0));
-    /*const vec2 uv = vec2(gl_LaunchIDNV.xy) / vec2(gl_LaunchSizeNV.xy - 1);
+    const vec2 pixelCenter = vec2(gl_LaunchIDNV.xy) + vec2(0.5);
+    const vec2 posNDC = pixelCenter / vec2(gl_LaunchSizeNV.xy);
+    vec2 posClip = posNDC * 2.0 - 1.0;
 
-    const vec3 origin = vec3(uv.x, 1.0f - uv.y, -1.0f);
-    const vec3 direction = vec3(0.0f, 0.0f, 1.0f);
+    vec4 origin = camera.viewInverse * vec4(0, 0, 0, 1);
+    vec4 target = camera.projInverse * vec4(posClip.x, posClip.y, 1, 1);
+    vec4 direction = camera.viewInverse * vec4(normalize(target.xyz), 0) ;
 
-    const uint rayFlags = gl_RayFlagsNoneNV;
+    const uint rayFlags = gl_RayFlagsOpaqueNV;
     const uint cullMask = 0xFF;
-    const uint sbtRecordOffset = 0;
-    const uint sbtRecordStride = 0;
-    const uint missIndex = 0;
     const float tmin = 0.0f;
     const float tmax = 10.0f;
-    const int payloadLocation = 0;
 
-    traceNV(Scene,
-            rayFlags,
-            cullMask,
-            sbtRecordOffset,
-            sbtRecordStride,
-            missIndex,
-            origin,
-            tmin,
-            direction,
-            tmax,
-            payloadLocation);
+    traceNV(scene, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
 
-    imageStore(ResultImage, ivec2(gl_LaunchIDNV.xy), vec4(ResultColor, 1.0f));*/
+    imageStore(resultImage, ivec2(gl_LaunchIDNV.xy), vec4(ResultColor, 1.0f));
 }
