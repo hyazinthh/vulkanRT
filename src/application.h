@@ -36,6 +36,12 @@ class Application {
 
 		VkSurfaceKHR getSurface() const { return surface; }
 
+		StringList getRequiredInstanceExtensions();
+
+		StringList getRequiredDeviceExtensions();
+
+		VkDescriptorSetLayoutCreateInfo getDescriptorSetLayoutInfo();
+
 	private:
 
 		void createWindow();
@@ -54,15 +60,17 @@ class Application {
 
 		void createBuffers();
 
-		void createDescriptorSetLayout();
-
-		void createDescriptorSets();
+		void writeDescriptorSets();
 
 		void updateRaytracingRenderTarget();
 
 		void queryExtensions();
 
-		Extensions getRequiredExtensions(bool debug);
+#ifndef NDEBUG
+		bool debug = true;
+#else
+		bool debug = false;
+#endif
 
 		uint32_t width, height;
 
@@ -90,7 +98,5 @@ class Application {
 
 		Buffer* uniformBuffer = nullptr;
 
-		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-
-		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+		std::vector<VkDescriptorSetLayoutBinding> bindings;
 };

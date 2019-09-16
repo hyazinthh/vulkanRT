@@ -4,7 +4,7 @@
 #include <algorithm>
 #include "../application.h"
 
-Instance::Instance(Application* application, const Extensions& requiredExtensions, DebugCallback debugCallback)
+Instance::Instance(Application* application, DebugCallback debugCallback)
 	: application(application), debugCallback(debugCallback) {
 
 	VkApplicationInfo appInfo = {};
@@ -19,6 +19,8 @@ Instance::Instance(Application* application, const Extensions& requiredExtension
 	if (isDebug()) {
 		validationLayers.push_back("VK_LAYER_KHRONOS_validation");
 	}
+
+	auto requiredExtensions = application->getRequiredInstanceExtensions();
 
 	std::vector<const char*> ext;
 	std::transform(requiredExtensions.begin(), requiredExtensions.end(), std::back_inserter(ext), [](auto& e) {
@@ -54,14 +56,14 @@ Instance::~Instance() {
 	vkDestroyInstance(instance, nullptr);
 }
 
-Extensions Instance::getExtensions() const {
+StringList Instance::getExtensions() const {
 	uint32_t count = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
 
 	std::vector<VkExtensionProperties> props(count);
 	vkEnumerateInstanceExtensionProperties(nullptr, &count, props.data());
 
-	Extensions ext;
+	StringList ext;
 	std::transform(props.begin(), props.end(), std::back_inserter(ext), [](VkExtensionProperties& p) {
 		return p.extensionName;
 	});
@@ -69,8 +71,11 @@ Extensions Instance::getExtensions() const {
 	return ext;
 }
 
-Device* Instance::createDevice(Extensions extensions) {
-	return new Device(this, application->getWidth(), application->getHeight(), application->getSurface(), extensions);
+Device* Instance::createDevice() {
+	return new Device(this, application->getWidth(), application->getHeight(), 
+		application->getSurface(), 
+		application->getDescriptorSetLayoutInfo(), 
+		application->getRequiredDeviceExtensions());
 }
 
 bool Instance::registerDebugCallback() {

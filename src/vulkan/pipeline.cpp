@@ -2,13 +2,13 @@
 #include "device.h"
 #include "vertex.h"
 
-Pipeline::Pipeline(Device* device, const VkDescriptorSetLayout& descriptorSetLayout) 
+Pipeline::Pipeline(Device* device) 
 	: device(device) {
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1;
-	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+	pipelineLayoutInfo.pSetLayouts = &device->getDescriptorSetLayout();
 	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
 	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
@@ -17,8 +17,8 @@ Pipeline::Pipeline(Device* device, const VkDescriptorSetLayout& descriptorSetLay
 	}
 }
 
-Pipeline::Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader, const VkDescriptorSetLayout& descriptorSetLayout)
-	: Pipeline(device, descriptorSetLayout) {
+Pipeline::Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader)
+	: Pipeline(device) {
 
 	auto vertexBindingDesc = Vertex::getBindingDescription();
 	auto vertexAttrDesc = Vertex::getAttributeDescription();

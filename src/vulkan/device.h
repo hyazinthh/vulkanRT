@@ -4,13 +4,19 @@
 #include <optional>
 
 #include "swap_chain.h"
+#include "pipeline.h"
 
 class Instance;
-typedef std::vector<std::string> Extensions;
+typedef std::vector<std::string> StringList;
 
 class Device {
+
+	private:
+		static const int MAX_FRAMES = 2;
+
 	public:
-		Device(Instance* instance, int width, int height, VkSurfaceKHR surface, Extensions requiredExtensions);
+		Device(Instance* instance, int width, int height, VkSurfaceKHR surface,
+			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo, StringList requiredExtensions);
 
 		~Device();
 
@@ -23,8 +29,6 @@ class Device {
 		void frameEnd();
 
 		void framePresent();
-
-		void bindDescriptorSet(VkDescriptorSet descriptorSet, VkPipelineLayout pipelineLayout, VkPipelineBindPoint bindPoint);
 
 		void setClearColor(const VkClearColorValue& value) { clearColor = value; }
 
@@ -43,7 +47,7 @@ class Device {
 
 		SwapChain* getSwapchain() { return swapchain; }
 
-		Extensions getExtensions() const {
+		StringList getExtensions() const {
 			return getExtensions(physicalDevice);
 		}
 
@@ -75,6 +79,18 @@ class Device {
 			return descriptorPool;
 		}
 
+		const VkDescriptorSetLayout& getDescriptorSetLayout() {
+			return descriptorSetLayout;
+		}
+
+		VkDescriptorSet& getDescriptorSet() {
+			return descriptorSets[frameIndex];
+		}
+
+		std::vector<VkDescriptorSet> getDescriptorSets() {
+			return std::vector<VkDescriptorSet>(descriptorSets, descriptorSets + MAX_FRAMES);
+		}
+
 		VkRenderPass getRenderPass() {
 			return renderPass;
 		}
@@ -84,9 +100,7 @@ class Device {
 		void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
 	private:
-		static const int MAX_FRAMES = 2;
-
-		void createCommandPool();
+		void createCommandPools();
 
 		void createCommandBuffers();
 
@@ -98,7 +112,9 @@ class Device {
 
 		void createDescriptorPool();
 
-		Extensions getExtensions(VkPhysicalDevice device) const;
+		void createDescriptorSets();
+
+		StringList getExtensions(VkPhysicalDevice device) const;
 
 		bool checkPhysicalDevice(VkPhysicalDevice device);
 
@@ -118,9 +134,11 @@ class Device {
 
 		VkQueue queue = VK_NULL_HANDLE;
 
-		Extensions requiredExtensions;
+		StringList requiredExtensions;
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
+
+		VkCommandPool commandPoolSingle = VK_NULL_HANDLE;
 
 		VkCommandBuffer commandBuffers[MAX_FRAMES] = { VK_NULL_HANDLE };
 
@@ -129,6 +147,12 @@ class Device {
 		std::vector<VkFramebuffer> framebuffers;
 
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+
+		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+
+		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {};
+
+		VkDescriptorSet descriptorSets[MAX_FRAMES] = { VK_NULL_HANDLE };
 
 		uint32_t backBufferIndices[MAX_FRAMES];
 

@@ -3,8 +3,8 @@
 
 #include <algorithm>
 
-RaytracingPipeline::RaytracingPipeline(Device* device, const VkDescriptorSetLayout& descriptorSetLayout) 
-	: Pipeline(device, descriptorSetLayout) {
+RaytracingPipeline::RaytracingPipeline(Device* device) 
+	: Pipeline(device) {
 }
 
 uint32_t RaytracingPipeline::startHitGroup() {

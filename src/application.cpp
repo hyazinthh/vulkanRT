@@ -35,9 +35,9 @@ uint32_t missIndex;
 uint32_t hitGroupIndex;
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-											 VkDebugUtilsMessageTypeFlagsEXT messageType,
+											 VkDebugUtilsMessageTypeFlagsEXT,
 											 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-											 void* pUserData) {
+											 void*) {
 
 	switch (messageSeverity) {
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
@@ -57,7 +57,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBits
 	return VK_FALSE;
 }
 
-void printExtensions(const std::string& type, const Extensions& extensions) {
+void printExtensions(const std::string& type, const StringList& extensions) {
 	std::cout << "Vulkan " << type << " reports " << extensions.size() << " extensions: " << std::endl << std::endl;
 
 	for (auto e : extensions) {
@@ -75,15 +75,12 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createDevice();
 	createBuffers();
 	createAccelerationStructures();
-	createDescriptorSetLayout();
-	createDescriptorSets();
+	writeDescriptorSets();
 	createPipeline();
 	createShaderBindingTable();
 }
 
 Application::~Application() {
-
-	vkDestroyDescriptorSetLayout(*device, descriptorSetLayout, nullptr);
 
 	delete topLevelAS;
 	delete bottomLevelAS;
@@ -144,7 +141,9 @@ void Application::draw() {
 	pipeline->bind(VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
 	vertexBuffer->bindAsVertexBuffer();
 	indexBuffer->bindAsIndexBuffer(VK_INDEX_TYPE_UINT32);
-	device->bindDescriptorSet(descriptorSet, pipeline->getLayout(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
+
+	vkCmdBindDescriptorSets(device->getCommandBuffer(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline->getLayout(),
+		0, 1, &device->getDescriptorSet(), 0, nullptr);
 
 	auto rg = ShaderBindingTable::EntryType::RayGen;
 	auto miss = ShaderBindingTable::EntryType::Miss;
@@ -170,19 +169,23 @@ void Application::queryExtensions() {
 	std::cout << std::endl;
 }
 
-Extensions Application::getRequiredExtensions(bool debug) {
+StringList Application::getRequiredInstanceExtensions() {
 
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-	Extensions extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+	StringList extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
 	if (debug) {
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
 
 	return extensions;
+}
+
+StringList Application::getRequiredDeviceExtensions() {
+	return { VK_NV_RAY_TRACING_EXTENSION_NAME };
 }
 
 void Application::createWindow() {
@@ -195,18 +198,12 @@ void Application::createWindow() {
 }
 
 void Application::createInstance() {
-#ifndef NDEBUG
-	auto cb = debugCallback;
-#else
-	auto cb = nullptr;
-#endif
-
-	instance = new Instance(this, getRequiredExtensions(cb != nullptr), cb);
+	instance = new Instance(this, debug ? debugCallback : nullptr);
 	printExtensions("instance", instance->getExtensions());
 }
 
 void Application::createDevice() {
-	device = instance->createDevice(Extensions());
+	device = instance->createDevice();
 	printExtensions("device", device->getExtensions());
 }
 
@@ -222,7 +219,7 @@ void Application::createPipeline() {
 	std::unique_ptr<Shader> shaderClosestHit(Shader::loadFromFile(device, "shaders/ray_chit.rchit", Shader::Type::ClosestHit));
 	std::unique_ptr<Shader> shaderRayGen(Shader::loadFromFile(device, "shaders/ray_gen.rgen", Shader::Type::RayGen));
 
-	RaytracingPipeline* pipeline = new RaytracingPipeline(device, descriptorSetLayout);
+	RaytracingPipeline* pipeline = new RaytracingPipeline(device);
 
 	rayGenIndex = pipeline->addShaderStage(shaderRayGen.get());
 	missIndex = pipeline->addShaderStage(shaderMiss.get());
@@ -288,7 +285,7 @@ void Application::createBuffers() {
 	}
 }
 
-void Application::createDescriptorSetLayout() {
+VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 
 	VkDescriptorSetLayoutBinding accelerationStructureBinding = {};
 	accelerationStructureBinding.binding = 0;
@@ -311,31 +308,20 @@ void Application::createDescriptorSetLayout() {
 	uboBinding.pImmutableSamplers = nullptr;
 	uboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-	std::vector<VkDescriptorSetLayoutBinding> bindings = { accelerationStructureBinding, imageBufferBinding, uboBinding };
+	bindings = { accelerationStructureBinding, imageBufferBinding, uboBinding };
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = (uint32_t) bindings.size();
 	layoutInfo.pBindings = bindings.data();
 
-	if (vkCreateDescriptorSetLayout(*device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create descriptor set layout");
-	}
+	return layoutInfo;
 }
 
-void Application::createDescriptorSets() {
-	VkDescriptorSetAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = device->getDescriptorPool();
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descriptorSetLayout;
-
-	if (vkAllocateDescriptorSets(*device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to allocate descriptor set");
-	}
-
+void Application::writeDescriptorSets() {
 	std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
+	for (const auto& ds : device->getDescriptorSets())
 	{
 		VkAccelerationStructureNV as = *topLevelAS;
 
@@ -347,7 +333,7 @@ void Application::createDescriptorSets() {
 		VkWriteDescriptorSet wds = {};
 		wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		wds.pNext = &wdsAccelerationStructure;
-		wds.dstSet = descriptorSet;
+		wds.dstSet = ds;
 		wds.dstBinding = 0;
 		wds.descriptorCount = 1;
 		wds.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
@@ -355,6 +341,7 @@ void Application::createDescriptorSets() {
 		writeDescriptorSets.push_back(wds);
 	}
 
+	for (const auto& ds : device->getDescriptorSets())
 	{
 		VkDescriptorBufferInfo info = {};
 		info.buffer = *uniformBuffer;
@@ -363,7 +350,7 @@ void Application::createDescriptorSets() {
 
 		VkWriteDescriptorSet wds = {};
 		wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		wds.dstSet = descriptorSet;
+		wds.dstSet = ds;
 		wds.dstArrayElement = 0;
 		wds.descriptorCount = 1;
 		wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -395,7 +382,7 @@ void Application::updateRaytracingRenderTarget() {
 
 	VkWriteDescriptorSet wds = {};
 	wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	wds.dstSet = descriptorSet;
+	wds.dstSet = device->getDescriptorSet();
 	wds.dstArrayElement = 0;
 	wds.descriptorCount = 1;
 	wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;

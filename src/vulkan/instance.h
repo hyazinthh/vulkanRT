@@ -6,14 +6,14 @@
 #include "device.h"
 
 typedef PFN_vkDebugUtilsMessengerCallbackEXT DebugCallback;
-typedef std::vector<std::string> Extensions;
+typedef std::vector<std::string> StringList;
 
 class Application;
 
 class Instance {
 
 	public:
-		Instance(Application* application, const Extensions& requiredExtensions, DebugCallback debugCallback = nullptr);
+		Instance(Application* application, DebugCallback debugCallback = nullptr);
 
 		~Instance();
 
@@ -21,9 +21,9 @@ class Instance {
 
 		bool isDebug() const { return debugCallback != nullptr; }
 
-		Extensions getExtensions() const;
+		StringList getExtensions() const;
 
-		Device* createDevice(Extensions extensions);		
+		Device* createDevice();
 
 	private:
 		bool registerDebugCallback();

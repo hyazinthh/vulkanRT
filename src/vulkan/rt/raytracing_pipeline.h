@@ -24,7 +24,7 @@ struct ShaderGroup {
 
 class RaytracingPipeline : public Pipeline {
 	public:
-		RaytracingPipeline(Device* device, const VkDescriptorSetLayout& descriptorSetLayout);
+		RaytracingPipeline(Device* device);
 
 		// Start the description of a hit group, that contains at least a closest hit shader, but may
 		// also contain an intesection shader and a any-hit shader. The method outputs the index of the

@@ -4,8 +4,10 @@
 
 #include <set>
 
-Device::Device(Instance* instance, int width, int height, VkSurfaceKHR surface, Extensions requiredExtensions)
-	: surface(surface), requiredExtensions(requiredExtensions) {
+Device::Device(Instance* instance, int width, int height, VkSurfaceKHR surface,
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo, StringList requiredExtensions)
+	: surface(surface), requiredExtensions(requiredExtensions), descriptorSetLayoutInfo(descriptorSetLayoutInfo) {
+
 	uint32_t count = 0;
 	vkEnumeratePhysicalDevices(*instance, &count, nullptr);
 
@@ -39,7 +41,9 @@ Device::~Device() {
 		vkDestroyFence(device, frameFences[i], nullptr);
 	}
 
+	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+	vkDestroyCommandPool(device, commandPoolSingle, nullptr);
 	vkDestroyCommandPool(device, commandPool, nullptr);
 	vkDestroyDevice(device, nullptr);
 }
@@ -94,9 +98,17 @@ void Device::frameEnd() {
 	info.signalSemaphoreCount = 1;
 	info.pSignalSemaphores = &renderFinishedSemaphores[frameIndex];
 
-	vkEndCommandBuffer(commandBuffers[frameIndex]);
-	vkResetFences(device, 1, &frameFences[frameIndex]);
-	vkQueueSubmit(queue, 1, &info, frameFences[frameIndex]);
+	if (vkEndCommandBuffer(commandBuffers[frameIndex]) != VK_SUCCESS) {
+		throw std::runtime_error("vkEndCommandBuffer failed");
+	}
+
+	if (vkResetFences(device, 1, &frameFences[frameIndex]) != VK_SUCCESS) {
+		throw std::runtime_error("vkResetFences failed");
+	}
+
+	if (vkQueueSubmit(queue, 1, &info, frameFences[frameIndex]) != VK_SUCCESS) {
+		throw std::runtime_error("vkQueueSubmit failed");
+	}
 }
 
 void Device::framePresent() {
@@ -109,23 +121,22 @@ void Device::framePresent() {
 	info.swapchainCount = 1;
 	info.pSwapchains = swapchains;
 	info.pImageIndices = &backBufferIndices[frameIndex];
-	vkQueuePresentKHR(queue, &info);
+
+	if (vkQueuePresentKHR(queue, &info) != VK_SUCCESS) {
+		throw std::runtime_error("vkQueuePresentKHR failed");
+	}
 
 	frameIndex = (frameIndex + 1) % MAX_FRAMES;
 }
 
-void Device::bindDescriptorSet(VkDescriptorSet descriptorSet, VkPipelineLayout pipelineLayout, VkPipelineBindPoint bindPoint) {
-	vkCmdBindDescriptorSets(getCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-}
-
-Extensions Device::getExtensions(VkPhysicalDevice device) const {
+StringList Device::getExtensions(VkPhysicalDevice device) const {
 	uint32_t count = 0;
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
 
 	std::vector<VkExtensionProperties> props(count);
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &count, props.data());
 
-	Extensions ext;
+	StringList ext;
 	std::transform(props.begin(), props.end(), std::back_inserter(ext), [](VkExtensionProperties& p) {
 		return p.extensionName;
 	});
@@ -151,7 +162,6 @@ void Device::createLogicalDevice(VkPhysicalDevice physicalDevice, int width, int
 	// Extensions
 	std::vector<const char*> ext;
 	ext.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-	ext.push_back(VK_NV_RAY_TRACING_EXTENSION_NAME);
 
 	std::transform(requiredExtensions.begin(), requiredExtensions.end(), std::back_inserter(ext), [](auto& e) {
 		return e.c_str();
@@ -178,10 +188,11 @@ void Device::createLogicalDevice(VkPhysicalDevice physicalDevice, int width, int
 	}
 
 	// Pools
-	createCommandPool();
+	createCommandPools();
 	createCommandBuffers();
 	createSyncObjects();
 	createDescriptorPool();
+	createDescriptorSets();
 
 	// Swapchain
 	VkExtent2D extent = { (uint32_t) width, (uint32_t) height };
@@ -191,13 +202,19 @@ void Device::createLogicalDevice(VkPhysicalDevice physicalDevice, int width, int
 	createFramebuffers();
 }
 
-void Device::createCommandPool() {
+void Device::createCommandPools() {
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.queueFamilyIndex = queueFamily;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 	if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create command pool");
+	}
+
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+
+	if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPoolSingle) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create command pool");
 	}
 }
@@ -301,7 +318,7 @@ void Device::createDescriptorPool() {
 		//{VK_DESCRIPTOR_TYPE_SAMPLER, 0},
 		//{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
 		//{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0},
-		//{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0},
+		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32},
 		//{VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 0},
 		//{VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 0},
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 32},
@@ -321,6 +338,25 @@ void Device::createDescriptorPool() {
 
 	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor pool");
+	}
+}
+
+void Device::createDescriptorSets() {
+
+	if (vkCreateDescriptorSetLayout(device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create descriptor set layout");
+	}
+
+	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES, descriptorSetLayout);
+
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = (uint32_t) layouts.size();
+	allocInfo.pSetLayouts = layouts.data();
+
+	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate descriptor sets");
 	}
 }
 
@@ -365,7 +401,7 @@ VkCommandBuffer Device::beginSingleTimeCommands() {
 	VkCommandBufferAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = commandPool;
+	allocInfo.commandPool = commandPoolSingle;
 	allocInfo.commandBufferCount = 1;
 
 	VkCommandBuffer commandBuffer;
@@ -391,7 +427,7 @@ void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
 	vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 	vkQueueWaitIdle(queue);
 
-	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+	vkFreeCommandBuffers(device, commandPoolSingle, 1, &commandBuffer);
 }
 
 uint32_t Device::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {

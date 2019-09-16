@@ -8,7 +8,7 @@ class Device;
 
 class Pipeline {
 	public:
-		Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader, const VkDescriptorSetLayout& descriptorSetLayout);
+		Pipeline(Device* device, Shader* vertexShader, Shader* fragmentShader);
 
 		virtual ~Pipeline();
 
@@ -19,7 +19,7 @@ class Pipeline {
 		VkPipelineLayout getLayout() { return layout; }
 
 	protected:
-		Pipeline(Device* device, const VkDescriptorSetLayout& descriptorSetLayout);
+		Pipeline(Device* device);
 
 		Device* device = nullptr;
 
