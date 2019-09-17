@@ -11,17 +11,6 @@
 
 #include "vulkan/extensions.h"
 
-const std::vector<Vertex> vertices = {
-	Vertex({-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}),
-	Vertex({0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}),
-	Vertex({-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}),
-	Vertex({0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f})
-};
-
-const std::vector<uint32_t> indices = {
-	0, 1, 2, 0, 3, 1
-};
-
 struct UniformBufferObject {
 	glm::mat4 viewInverse;
 	glm::mat4 projInverse;
@@ -73,23 +62,15 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createSurface();
 	createDevice();
 	createBuffers();
-	createAccelerationStructures();
+	createScene();
 	writeDescriptorSets();
-	createPipeline();
-	createShaderBindingTable();
 }
 
 Application::~Application() {
 
-	delete topLevelAS;
-	delete bottomLevelAS;
-
+	delete scene;
 	delete uniformBuffer;
-	delete vertexBuffer;
-	delete indexBuffer;
 
-	delete shaderBindingTable;
-	delete pipeline;
 	delete device;
 	vkDestroySurfaceKHR(*instance, surface, nullptr);
 	delete instance;
@@ -99,13 +80,9 @@ Application::~Application() {
 
 void Application::update(float dt) {
 
-	// Update acceleration structure
-	auto model = glm::rotate(glm::mat4(1.0f), dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-	std::vector<TopLevelAS::Instance> instances;
-	instances.push_back(TopLevelAS::Instance(bottomLevelAS, 0, 0, model));
-
-	topLevelAS->update(instances);
+	// Update scene
+	scene->rotatingQuad->transform = glm::rotate(glm::mat4(1.0f), dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	scene->buildAccelerationStructure(true);
 
 	// Update matrices
 	auto ext = device->getSwapchain()->getExtent();
@@ -134,7 +111,7 @@ void Application::run() {
 		updateRaytracingRenderTarget();
 		device->beginRenderPass();
 
-		draw();
+		scene->trace();
 
 		device->endRenderPass();
 		device->frameEnd();
@@ -142,28 +119,6 @@ void Application::run() {
 	}
 
 	vkDeviceWaitIdle(*device);
-}
-
-void Application::draw() {
-	pipeline->bind(VK_PIPELINE_BIND_POINT_RAY_TRACING_NV);
-	//vertexBuffer->bindAsVertexBuffer();
-	//indexBuffer->bindAsIndexBuffer(VK_INDEX_TYPE_UINT32);
-
-	vkCmdBindDescriptorSets(device->getCommandBuffer(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline->getLayout(),
-		0, 1, &device->getDescriptorSet(), 0, nullptr);
-
-	auto rg = ShaderBindingTable::EntryType::RayGen;
-	auto miss = ShaderBindingTable::EntryType::Miss;
-	auto hitGroup = ShaderBindingTable::EntryType::HitGroup;
-
-	VkExt::vkCmdTraceRaysNV(device->getCommandBuffer(),
-		*shaderBindingTable->getBuffer(), shaderBindingTable->getOffset(rg),
-		*shaderBindingTable->getBuffer(), shaderBindingTable->getOffset(miss), shaderBindingTable->getEntrySize(miss),
-		*shaderBindingTable->getBuffer(), shaderBindingTable->getOffset(hitGroup), shaderBindingTable->getEntrySize(hitGroup),
-		VK_NULL_HANDLE, 0, 0, width, height, 1);
-
-	//uint32_t count = (uint32_t) indices.size();
-	//vkCmdDrawIndexed(device->getCommandBuffer(), count, count / 3, 0, 0, 0);
 }
 
 void Application::queryExtensions() {
@@ -220,71 +175,11 @@ void Application::createSurface() {
 	}
 }
 
-void Application::createPipeline() {
-
-	std::unique_ptr<Shader> shaderMiss(Shader::loadFromFile(device, "shaders/ray_miss.rmiss", Shader::Type::Miss));
-	std::unique_ptr<Shader> shaderClosestHit(Shader::loadFromFile(device, "shaders/ray_chit.rchit", Shader::Type::ClosestHit));
-	std::unique_ptr<Shader> shaderRayGen(Shader::loadFromFile(device, "shaders/ray_gen.rgen", Shader::Type::RayGen));
-
-	RaytracingPipeline* pipeline = new RaytracingPipeline(device);
-
-	rayGenIndex = pipeline->addShaderStage(shaderRayGen.get());
-	missIndex = pipeline->addShaderStage(shaderMiss.get());
-
-	hitGroupIndex = pipeline->startHitGroup();
-	pipeline->addHitShaderStage(shaderClosestHit.get());
-	pipeline->endHitGroup();
-
-	this->pipeline = pipeline->create();
-}
-
-void Application::createShaderBindingTable() {
-	shaderBindingTable = new ShaderBindingTable(device, pipeline);
-	shaderBindingTable->addEntry(ShaderBindingTable::EntryType::RayGen, rayGenIndex);
-	shaderBindingTable->addEntry(ShaderBindingTable::EntryType::Miss, missIndex);
-	shaderBindingTable->addEntry(ShaderBindingTable::EntryType::HitGroup, hitGroupIndex);
-
-	shaderBindingTable->create();
-}
-
-void Application::createAccelerationStructures() {
-	bottomLevelAS = new BottomLevelAS(device, 
-						vertexBuffer, (uint32_t) vertices.size(), sizeof(Vertex),
-						indexBuffer, (uint32_t) indices.size());
-
-	std::vector<TopLevelAS::Instance> instances;
-	instances.push_back(TopLevelAS::Instance(bottomLevelAS, 0, 0));
-
-	topLevelAS = new TopLevelAS(device, instances, true);
+void Application::createScene() {
+	scene = new Scene(device);
 }
 
 void Application::createBuffers() {
-	{
-		Buffer localBuffer(device, sizeof(Vertex) * vertices.size(),
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-		vertexBuffer = new Buffer(device, localBuffer.getSize(),
-			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		localBuffer.fill(vertices.data());
-		localBuffer.copyTo(vertexBuffer);
-	}
-
-	{
-		Buffer localBuffer(device, sizeof(uint32_t) * indices.size(),
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-		indexBuffer = new Buffer(device, localBuffer.getSize(),
-			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		localBuffer.fill(indices.data());
-		localBuffer.copyTo(indexBuffer);
-	}
-
 	{
 		uniformBuffer = new Buffer(device, sizeof(UniformBufferObject),
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -336,7 +231,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	{
 		VkDescriptorSetLayoutBinding b = {};
 		b.binding = 3;
-		b.descriptorCount = 1;
+		b.descriptorCount = 2;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		b.pImmutableSamplers = nullptr;
 		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
@@ -348,7 +243,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	{
 		VkDescriptorSetLayoutBinding b = {};
 		b.binding = 4;
-		b.descriptorCount = 1;
+		b.descriptorCount = 2;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		b.pImmutableSamplers = nullptr;
 		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
@@ -365,11 +260,10 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 }
 
 void Application::writeDescriptorSets() {
-	std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
 	for (const auto& ds : device->getDescriptorSets()) {
 		{
-			VkAccelerationStructureNV as = *topLevelAS;
+			VkAccelerationStructureNV as = *scene->getAccelerationStructure();
 
 			VkWriteDescriptorSetAccelerationStructureNV wdsAccelerationStructure = {};
 			wdsAccelerationStructure.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
@@ -384,7 +278,7 @@ void Application::writeDescriptorSets() {
 			wds.descriptorCount = 1;
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
 
-			writeDescriptorSets.push_back(wds);
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
 		}
 
 		{
@@ -402,47 +296,67 @@ void Application::writeDescriptorSets() {
 			wds.dstBinding = 2;
 			wds.pBufferInfo = &info;
 
-			writeDescriptorSets.push_back(wds);
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
 		}
 
 		{
-			VkDescriptorBufferInfo info = {};
-			info.buffer = *vertexBuffer;
-			info.offset = 0;
-			info.range = VK_WHOLE_SIZE;
+			std::vector<VkDescriptorBufferInfo> info;
+			
+			for (const auto& o : scene->getObjects())
+			{
+				VkDescriptorBufferInfo i = {};
+				i.buffer = *o->vertexBuffer;
+				i.offset = 0;
+				i.range = VK_WHOLE_SIZE;
+
+				info.push_back(i);
+			}
 
 			VkWriteDescriptorSet wds = {};
 			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			wds.dstSet = ds;
 			wds.dstArrayElement = 0;
-			wds.descriptorCount = 1;
+			wds.descriptorCount = (uint32_t) info.size();
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			wds.dstBinding = 3;
-			wds.pBufferInfo = &info;
+			wds.pBufferInfo = info.data();
 
-			writeDescriptorSets.push_back(wds);
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
 		}
 
 		{
-			VkDescriptorBufferInfo info = {};
-			info.buffer = *indexBuffer;
-			info.offset = 0;
-			info.range = VK_WHOLE_SIZE;
+			std::vector<VkDescriptorBufferInfo> info;
+
+			{
+				VkDescriptorBufferInfo i = {};
+				i.buffer = *scene->rotatingQuad->object->indexBuffer;
+				i.offset = 0;
+				i.range = VK_WHOLE_SIZE;
+
+				info.push_back(i);
+			}
+
+			{
+				VkDescriptorBufferInfo i = {};
+				i.buffer = *scene->floor->object->indexBuffer;
+				i.offset = 0;
+				i.range = VK_WHOLE_SIZE;
+
+				info.push_back(i);
+			}
 
 			VkWriteDescriptorSet wds = {};
 			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			wds.dstSet = ds;
 			wds.dstArrayElement = 0;
-			wds.descriptorCount = 1;
+			wds.descriptorCount = (uint32_t) info.size();
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			wds.dstBinding = 4;
-			wds.pBufferInfo = &info;
+			wds.pBufferInfo = info.data();
 
-			writeDescriptorSets.push_back(wds);
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
 		}
 	}
-
-	vkUpdateDescriptorSets(*device, (uint32_t) writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 }
 
 void Application::updateRaytracingRenderTarget() {

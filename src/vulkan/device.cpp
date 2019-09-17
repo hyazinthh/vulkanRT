@@ -157,6 +157,11 @@ void Device::createLogicalDevice(VkPhysicalDevice physicalDevice, int width, int
 	queueInfo.pQueuePriorities = &priority;
 
 	// Features
+	VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = {};
+	indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+	indexingFeatures.pNext = nullptr;
+	indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+
 	VkPhysicalDeviceFeatures deviceFeatures = {};
 
 	// Extensions
@@ -175,6 +180,7 @@ void Device::createLogicalDevice(VkPhysicalDevice physicalDevice, int width, int
 	deviceInfo.pEnabledFeatures = &deviceFeatures;
 	deviceInfo.enabledExtensionCount = (uint32_t) ext.size();
 	deviceInfo.ppEnabledExtensionNames = ext.data();
+	deviceInfo.pNext = &indexingFeatures;
 
 	if (vkCreateDevice(physicalDevice, &deviceInfo, nullptr, &device) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Vulkan device");
@@ -363,6 +369,18 @@ void Device::createDescriptorSets() {
 bool Device::checkPhysicalDevice(VkPhysicalDevice device) {
 	VkPhysicalDeviceProperties props;
 	vkGetPhysicalDeviceProperties(device, &props);
+
+	VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = {};
+	indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+
+	VkPhysicalDeviceFeatures2 deviceFeatures = {};
+	deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	deviceFeatures.pNext = &indexingFeatures;
+	vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
+
+	if (!indexingFeatures.runtimeDescriptorArray) {
+		return false;
+	}
 
 	auto ext = getExtensions(device);
 	for (auto e : requiredExtensions) {

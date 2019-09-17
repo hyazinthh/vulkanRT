@@ -53,14 +53,17 @@ VkDeviceSize ShaderBindingTable::copyShaderData(EntryType type, uint8_t* outputD
 	const auto& entries = this->entries[(int) type];
 	auto entrySize = getEntrySize(entries);
 
-	for (const auto& e : entries) {
+	for (int i = 0; i < entries.size(); i++) {
+		uint32_t groupIndex = getBaseIndex(type) + i;
+		const auto& data = entries[i].inlineData;
+
 		// Copy the shader identifier that was previously obtained with
 		// vkGetRayTracingShaderGroupHandlesNV
-		memcpy(pData, shaderHandleStorage + e.groupIndex * shaderGroupHandleSize, shaderGroupHandleSize);
+		memcpy(pData, shaderHandleStorage + groupIndex * shaderGroupHandleSize, shaderGroupHandleSize);
 
 		// Copy all its resources pointers or values in bulk
-		if (!e.inlineData.empty()) {
-			memcpy(pData + shaderGroupHandleSize, e.inlineData.data(), e.inlineData.size());
+		if (!data.empty()) {
+			memcpy(pData + shaderGroupHandleSize, data.data(), data.size());
 		}
 
 		pData += entrySize;
@@ -104,6 +107,17 @@ VkDeviceSize ShaderBindingTable::getSize() {
 	}
 
 	return entrySizes;
+}
+
+uint32_t ShaderBindingTable::getBaseIndex(EntryType type) const {
+
+	uint32_t index = 0;
+
+	for (uint32_t i = 0; i < (uint32_t) type; i++) {
+		index += entries[i].size();
+	}
+
+	return index;
 }
 
 VkDeviceSize ShaderBindingTable::getSectionSize(EntryType type) const {

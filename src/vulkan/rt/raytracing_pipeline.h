@@ -58,6 +58,8 @@ class RaytracingPipeline : public Pipeline {
 		// True if a group description is currently started
 		bool isHitGroupOpen = false;
 
+		uint32_t currentHitGroup = 0;
+
 		uint32_t maxRecursionDepth = 1;
 
 };

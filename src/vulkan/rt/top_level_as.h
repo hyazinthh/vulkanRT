@@ -8,10 +8,10 @@ class TopLevelAS : public AccelerationStructure {
 		struct Instance {
 			Instance(BottomLevelAS* blAS,
 				uint32_t instanceId, uint32_t hitGroup,
-				const glm::mat4x4& transform = glm::mat4x4(1.0f));
+				const glm::mat4& transform = glm::mat4(1.0f));
 
 			BottomLevelAS* bottomLevelAS;
-			const glm::mat4x4 transform;
+			const glm::mat4 transform;
 			uint32_t instanceId;
 			uint32_t hitGroupIndex;
 		};

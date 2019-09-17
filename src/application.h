@@ -9,8 +9,7 @@
 #include "vulkan/swap_chain.h"
 #include "vulkan/buffer.h"
 #include "vulkan/vertex.h"
-#include "vulkan/rt/top_level_as.h"
-#include "vulkan/rt/bottom_level_as.h"
+#include "vulkan/scene.h"
 #include "vulkan/rt/raytracing_pipeline.h"
 #include "vulkan/rt/shader_binding_table.h"
 
@@ -24,8 +23,6 @@ class Application {
 		void run();
 
 		void update(float dt);
-		
-		void draw();
 
 		const std::string& getName() const { return name; }
 
@@ -53,11 +50,7 @@ class Application {
 
 		void createSurface();
 
-		void createPipeline();
-
-		void createShaderBindingTable();
-
-		void createAccelerationStructures();
+		void createScene();
 
 		void createBuffers();
 
@@ -85,17 +78,7 @@ class Application {
 
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
-		Pipeline* pipeline = nullptr;
-
-		ShaderBindingTable* shaderBindingTable = nullptr;
-
-		BottomLevelAS* bottomLevelAS = nullptr;
-
-		TopLevelAS* topLevelAS = nullptr;
-
-		Buffer* vertexBuffer = nullptr;
-
-		Buffer* indexBuffer = nullptr;
+		Scene* scene = nullptr;
 
 		Buffer* uniformBuffer = nullptr;
 

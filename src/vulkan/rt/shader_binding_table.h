@@ -14,28 +14,30 @@ class ShaderBindingTable {
 			Count
 		};
 
-		// Wrapper for SBT entries, each consisting of the name of the program and a list of values,
+		// Wrapper for SBT entries, each consisting of the (implicit) name of the program and a list of values,
 		// which can be either offsets or raw 32-bit constants
 		struct Entry {
-			Entry(uint32_t groupIndex, const ByteArray inlineData)
-				: groupIndex(groupIndex), inlineData(inlineData) {
+			Entry(const void* data, size_t dataSize) {
+				inlineData.resize(dataSize);
+				memcpy_s(inlineData.data(), inlineData.size(), data, dataSize);
 			}
 
-			uint32_t groupIndex;
-			const ByteArray inlineData;
+			ByteArray inlineData;
 		};
 
 		ShaderBindingTable(Device* device, Pipeline* pipeline);
 
 		~ShaderBindingTable();
 
-		void addEntry(EntryType type, uint32_t groupIndex, const ByteArray& data = ByteArray()) {
-			entries[(int) type].push_back(Entry(groupIndex, data));
+		void addEntry(EntryType type, const void* data = nullptr, size_t dataSize = 0) {
+			entries[(int) type].push_back(Entry(data, dataSize));
 		}
 
 		ShaderBindingTable* create();
 
 		Buffer* getBuffer() { return buffer; }
+
+		uint32_t getBaseIndex(EntryType type) const;
 
 		VkDeviceSize getSectionSize(EntryType type) const;
 

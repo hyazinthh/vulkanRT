@@ -58,5 +58,5 @@ Buffer* TopLevelAS::createInstanceBuffer(const std::vector<Instance>& instances)
 }
 
 TopLevelAS::Instance::Instance(BottomLevelAS* blAS,
-	uint32_t instanceId, uint32_t hitGroup, const glm::mat4x4& transform)
+	uint32_t instanceId, uint32_t hitGroup, const glm::mat4& transform)
 	: bottomLevelAS(blAS), transform(transform), instanceId(instanceId), hitGroupIndex(hitGroup) {}

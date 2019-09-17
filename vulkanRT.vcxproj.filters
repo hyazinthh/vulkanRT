@@ -15,6 +15,7 @@
     <ClCompile Include="src\vulkan\rt\shader_binding_table.cpp" />
     <ClCompile Include="src\vulkan\rt\top_level_as.cpp" />
     <ClCompile Include="src\vulkan\rt\bottom_level_as.cpp" />
+    <ClCompile Include="src\vulkan\scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\application.h" />
@@ -31,6 +32,7 @@
     <ClInclude Include="src\vulkan\rt\shader_binding_table.h" />
     <ClInclude Include="src\vulkan\rt\top_level_as.h" />
     <ClInclude Include="src\vulkan\rt\bottom_level_as.h" />
+    <ClInclude Include="src\vulkan\scene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\triangle.vert" />

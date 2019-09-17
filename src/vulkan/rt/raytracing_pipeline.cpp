@@ -22,7 +22,7 @@ uint32_t RaytracingPipeline::startHitGroup() {
 	shaderGroups.push_back(groupInfo);
 
 	isHitGroupOpen = true;
-	return (uint32_t) shaderGroups.size() - 1;
+	return currentHitGroup;
 }
 
 void RaytracingPipeline::addHitShaderStage(Shader* shader) {
@@ -59,6 +59,7 @@ void RaytracingPipeline::endHitGroup() {
 	}
 
 	isHitGroupOpen = false;
+	currentHitGroup++;
 }
 
 uint32_t RaytracingPipeline::addShaderStage(Shader* shader) {

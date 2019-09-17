@@ -30,6 +30,7 @@
     <ClCompile Include="src\vulkan\extensions.cpp" />
     <ClCompile Include="src\vulkan\pipeline.cpp" />
     <ClCompile Include="src\vulkan\rt\shader_binding_table.cpp" />
+    <ClCompile Include="src\vulkan\scene.cpp" />
     <ClCompile Include="src\vulkan\shader.cpp" />
     <ClCompile Include="src\vulkan\swap_chain.cpp" />
     <ClCompile Include="src\vulkan\rt\top_level_as.cpp" />
@@ -45,6 +46,7 @@
     <ClInclude Include="src\vulkan\extensions.h" />
     <ClInclude Include="src\vulkan\pipeline.h" />
     <ClInclude Include="src\vulkan\rt\shader_binding_table.h" />
+    <ClInclude Include="src\vulkan\scene.h" />
     <ClInclude Include="src\vulkan\shader.h" />
     <ClInclude Include="src\vulkan\swap_chain.h" />
     <ClInclude Include="src\vulkan\vertex.h" />
