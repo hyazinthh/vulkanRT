@@ -107,14 +107,16 @@ void Scene::buildAccelerationStructure(bool updateOnly) {
 }
 
 void Scene::createPipeline() {
-	std::unique_ptr<Shader> shaderMiss(Shader::loadFromFile(device, "shaders/ray_miss.rmiss", Shader::Type::Miss));
-	std::unique_ptr<Shader> shaderClosestHit(Shader::loadFromFile(device, "shaders/ray_chit.rchit", Shader::Type::ClosestHit));
-	std::unique_ptr<Shader> shaderRayGen(Shader::loadFromFile(device, "shaders/ray_gen.rgen", Shader::Type::RayGen));
+	std::unique_ptr<Shader> shaderMiss(Shader::loadFromFile(device, "shaders/primary.rmiss", Shader::Type::Miss));
+	std::unique_ptr<Shader> shaderShadowMiss(Shader::loadFromFile(device, "shaders/shadow.rmiss", Shader::Type::Miss));
+	std::unique_ptr<Shader> shaderClosestHit(Shader::loadFromFile(device, "shaders/primary.rchit", Shader::Type::ClosestHit));
+	std::unique_ptr<Shader> shaderRayGen(Shader::loadFromFile(device, "shaders/primary.rgen", Shader::Type::RayGen));
 
 	RaytracingPipeline* pipeline = new RaytracingPipeline(device);
 
 	pipeline->addShaderStage(shaderRayGen.get());
 	pipeline->addShaderStage(shaderMiss.get());
+	pipeline->addShaderStage(shaderShadowMiss.get());
 
 	for (auto& inst : instances) {
 		inst->hitGroup = pipeline->startHitGroup();
@@ -128,6 +130,7 @@ void Scene::createPipeline() {
 void Scene::createShaderBindingTable() {
 	shaderBindingTable = std::make_unique<ShaderBindingTable>(device, pipeline.get());
 	shaderBindingTable->addEntry(ShaderBindingTable::EntryType::RayGen);
+	shaderBindingTable->addEntry(ShaderBindingTable::EntryType::Miss);
 	shaderBindingTable->addEntry(ShaderBindingTable::EntryType::Miss);
 
 	for (const auto& inst : instances) {

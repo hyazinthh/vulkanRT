@@ -60,7 +60,7 @@ class RaytracingPipeline : public Pipeline {
 
 		uint32_t currentHitGroup = 0;
 
-		uint32_t maxRecursionDepth = 1;
+		uint32_t maxRecursionDepth = 8;
 
 };
 
