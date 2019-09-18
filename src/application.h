@@ -10,6 +10,7 @@
 #include "vulkan/buffer.h"
 #include "vulkan/vertex.h"
 #include "vulkan/scene.h"
+#include "vulkan/texture.h"
 #include "vulkan/rt/raytracing_pipeline.h"
 #include "vulkan/rt/shader_binding_table.h"
 
@@ -54,6 +55,8 @@ class Application {
 
 		void createBuffers();
 
+		void createTextures();
+
 		void writeDescriptorSets();
 
 		void updateRaytracingRenderTarget();
@@ -83,6 +86,8 @@ class Application {
 		Buffer* cameraUniformBuffer = nullptr;
 
 		Buffer* lightUniformBuffer = nullptr;
+
+		std::vector<Texture*> textures;
 
 		std::vector<VkDescriptorSetLayoutBinding> bindings;
 };

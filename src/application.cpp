@@ -61,6 +61,7 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createSurface();
 	createDevice();
 	createBuffers();
+	createTextures();
 	createScene();
 	writeDescriptorSets();
 }
@@ -68,6 +69,11 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 Application::~Application() {
 
 	delete scene;
+
+	for (auto& t : textures) {
+		delete t;
+	}
+
 	delete cameraUniformBuffer;
 	delete lightUniformBuffer;
 	delete device;
@@ -225,6 +231,11 @@ void Application::createBuffers() {
 	}
 }
 
+void Application::createTextures() {
+	textures.push_back(new Texture(device, "textures/checker.png"));
+	textures.push_back(new Texture(device, "textures/marble.png"));
+}
+
 VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 
 	bindings.clear();
@@ -269,7 +280,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	{
 		VkDescriptorSetLayoutBinding b = {};
 		b.binding = 3;
-		b.descriptorCount = 2;
+		b.descriptorCount = 32;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		b.pImmutableSamplers = nullptr;
 		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
@@ -281,7 +292,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	{
 		VkDescriptorSetLayoutBinding b = {};
 		b.binding = 4;
-		b.descriptorCount = 2;
+		b.descriptorCount = 32;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		b.pImmutableSamplers = nullptr;
 		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
@@ -301,6 +312,17 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 		bindings.push_back(b);
 	}
 
+	// Textures
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = 6;
+		b.descriptorCount = 32;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+		bindings.push_back(b);
+	}
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -416,19 +438,36 @@ void Application::writeDescriptorSets() {
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
 		}
+
+		{
+			std::vector<VkDescriptorImageInfo> info;
+
+			for (const auto& t : textures) {
+				VkDescriptorImageInfo i = {};
+				i.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				i.imageView = t->getImageView();
+				i.sampler = t->getSampler();
+
+				info.push_back(i);
+			}
+
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.dstSet = ds;
+			wds.dstArrayElement = 0;
+			wds.descriptorCount = (uint32_t) info.size();
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			wds.dstBinding = 6;
+			wds.pImageInfo = info.data();
+
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
+		}
 	}
 }
 
 void Application::updateRaytracingRenderTarget() {
 
-	VkImageSubresourceRange subresourceRange;
-	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	subresourceRange.baseMipLevel = 0;
-	subresourceRange.levelCount = 1;
-	subresourceRange.baseArrayLayer = 0;
-	subresourceRange.layerCount = 1;
-
-	device->imageBarrier(device->getCommandBuffer(), device->getBackBuffer(), subresourceRange,
+	device->imageBarrier(device->getCommandBuffer(), device->getBackBuffer(),
 		0, VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
 	VkDescriptorImageInfo info;

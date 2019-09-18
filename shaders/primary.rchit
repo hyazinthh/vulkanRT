@@ -8,6 +8,7 @@ layout(location = 1) rayPayloadNV bool isShadowed;
 struct Vertex {
     vec4 position;
     vec3 normal;
+    vec2 texCoord;
 };
 
 layout(set = 0, binding = 0) uniform accelerationStructureNV scene;
@@ -25,8 +26,11 @@ layout(set = 0, binding = 5) uniform UniformBufferObject {
     vec4 diffuseColor;
 } light;
 
+layout(set = 0, binding = 6) uniform sampler2D[] textureSamplers;
+
 layout(shaderRecordNV) buffer ShaderRecord {
 	int objectId;
+    int textureId;
     vec4 color;
     mat3 normalMatrix;
 };
@@ -48,6 +52,7 @@ Vertex getHitPoint() {
     Vertex hitPoint;
     hitPoint.position = bc.x * v0.position + bc.y * v1.position + bc.z * v2.position;
     hitPoint.normal = bc.x * v0.normal + bc.y * v1.normal + bc.z * v2.normal;
+    hitPoint.texCoord = bc.x * v0.texCoord + bc.y * v1.texCoord + bc.z * v2.texCoord;
 
     return hitPoint;
 }
@@ -73,7 +78,10 @@ void main() {
         0xFE, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */,
         1 /* missIndex */, origin, tmin, light.position.xyz - origin, tmax, 1 /*payload location*/);
 
+    // Diffuse color
+    vec4 color = (textureId > -1) ? texture(textureSamplers[textureId], v.texCoord.xy) : color;
+
     // Diffuse lighting
     float diffuse = isShadowed ? 0.2 : max(dot(lightVector, normal), 0.2);
-    resultColor = color * diffuse;
+    resultColor =  color * diffuse;
 }

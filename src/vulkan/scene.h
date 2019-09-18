@@ -22,6 +22,7 @@ class Scene {
 			glm::mat4 transform;
 			glm::vec4 color;
 			std::shared_ptr<Object> object;
+			int32_t textureId;
 			uint32_t hitGroup;
 			uint32_t mask;
 		};
@@ -38,6 +39,7 @@ class Scene {
 			const std::vector<uint32_t>& indices);
 
 		std::shared_ptr<Instance> addInstance(const std::shared_ptr<Object>& object,
+			int32_t textureId = -1,
 			const glm::vec3& color = glm::vec3(1.0f),
 			const glm::mat4& transform = glm::mat4(1.0f),
 			uint32_t mask = 0xff);
@@ -61,7 +63,7 @@ class Scene {
 	private:
 
 		struct ShaderRecord {
-			glm::ivec4 objectId;
+			glm::ivec4 ids;
 			glm::vec4 color;
 			glm::mat4 normalMatrix;
 		};

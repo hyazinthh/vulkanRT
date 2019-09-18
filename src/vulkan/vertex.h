@@ -7,10 +7,12 @@
 struct Vertex {
 	glm::vec4 position;
 	glm::vec4 normal;
+	glm::vec4 texCoord;
 
-	Vertex(const glm::vec3& p, const glm::vec3& n) {
+	Vertex(const glm::vec3& p, const glm::vec3& n, const glm::vec2& uv) {
 		position = glm::vec4(p, 1.0f);
 		normal = glm::vec4(n, 1.0f);
+		texCoord = glm::vec4(uv, 0.0f, 0.0f);
 	}
 
 	static VkVertexInputBindingDescription getBindingDescription() {

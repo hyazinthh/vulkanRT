@@ -36,8 +36,8 @@ class Device {
 
 		uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-		void imageBarrier(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange& subresourceRange,
-			VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldLayout, VkImageLayout newLayout);
+		void imageBarrier(VkCommandBuffer commandBuffer, VkImage image, VkAccessFlags srcAccessMask,
+			VkAccessFlags dstAccessMask, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 		operator VkDevice() { return device; }
 

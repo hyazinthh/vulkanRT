@@ -163,6 +163,7 @@ void Device::createLogicalDevice(VkPhysicalDevice physicalDevice, int width, int
 	indexingFeatures.runtimeDescriptorArray = VK_TRUE;
 
 	VkPhysicalDeviceFeatures deviceFeatures = {};
+	deviceFeatures.samplerAnisotropy = VK_TRUE;
 
 	// Extensions
 	std::vector<const char*> ext;
@@ -377,8 +378,8 @@ bool Device::checkPhysicalDevice(VkPhysicalDevice device) {
 	deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	deviceFeatures.pNext = &indexingFeatures;
 	vkGetPhysicalDeviceFeatures2(device, &deviceFeatures);
-
-	if (!indexingFeatures.runtimeDescriptorArray) {
+	
+	if (!indexingFeatures.runtimeDescriptorArray || !deviceFeatures.features.samplerAnisotropy) {
 		return false;
 	}
 
@@ -462,8 +463,15 @@ uint32_t Device::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 	throw std::runtime_error("Failed to find suitable memory type");
 }
 
-void Device::imageBarrier(VkCommandBuffer commandBuffer, VkImage image, VkImageSubresourceRange& subresourceRange,
+void Device::imageBarrier(VkCommandBuffer commandBuffer, VkImage image,
 	VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldLayout, VkImageLayout newLayout) {
+
+	VkImageSubresourceRange subresourceRange;
+	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresourceRange.baseMipLevel = 0;
+	subresourceRange.levelCount = 1;
+	subresourceRange.baseArrayLayer = 0;
+	subresourceRange.layerCount = 1;
 
 	VkImageMemoryBarrier barrier;
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

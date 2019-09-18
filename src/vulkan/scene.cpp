@@ -12,10 +12,10 @@ Scene::Scene(Device* device) : device(device) {
 
 	{
 		const std::vector<Vertex> vertices = {
-			Vertex({-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}),
-			Vertex({ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}),
-			Vertex({-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}),
-			Vertex({ 0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f})
+			Vertex({-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}),
+			Vertex({ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}),
+			Vertex({-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}),
+			Vertex({ 0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f})
 		};
 
 		const std::vector<uint32_t> indices = {
@@ -28,40 +28,40 @@ Scene::Scene(Device* device) : device(device) {
 	{
 		const std::vector<Vertex> vertices = {
 			// Top
-			Vertex({-0.5, -0.5, 0.5}, {0, 0, 1}),
-			Vertex({ 0.5,  0.5, 0.5}, {0, 0, 1}),
-			Vertex({-0.5,  0.5, 0.5}, {0, 0, 1}),
-			Vertex({ 0.5, -0.5, 0.5}, {0, 0, 1}),
+			Vertex({-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}),
+			Vertex({ 0.5f,  0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}),
+			Vertex({-0.5f,  0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}),
+			Vertex({ 0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}),
 
 			// Bottom
-			Vertex({-0.5, -0.5, -0.5}, {0, 0, -1}),
-			Vertex({ 0.5,  0.5, -0.5}, {0, 0, -1}),
-			Vertex({-0.5,  0.5, -0.5}, {0, 0, -1}),
-			Vertex({ 0.5, -0.5, -0.5}, {0, 0, -1}),
+			Vertex({-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}),
+			Vertex({ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}),
+			Vertex({-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}),
+			Vertex({ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}),
 
 			// Left
-			Vertex({-0.5, -0.5, -0.5}, {-1, 0, 0}),
-			Vertex({-0.5,  0.5,  0.5}, {-1, 0, 0}),
-			Vertex({-0.5, -0.5,  0.5}, {-1, 0, 0}),
-			Vertex({-0.5,  0.5, -0.5}, {-1, 0, 0}),
+			Vertex({-0.5f, -0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}),
+			Vertex({-0.5f,  0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}),
+			Vertex({-0.5f, -0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}),
+			Vertex({-0.5f,  0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}),
 
 			// Right
-			Vertex({ 0.5, -0.5, -0.5}, {1, 0, 0}),
-			Vertex({ 0.5,  0.5,  0.5}, {1, 0, 0}),
-			Vertex({ 0.5, -0.5,  0.5}, {1, 0, 0}),
-			Vertex({ 0.5,  0.5, -0.5}, {1, 0, 0}),
+			Vertex({ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}),
+			Vertex({ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}),
+			Vertex({ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}),
+			Vertex({ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}),
 
 			// Top
-			Vertex({-0.5,  0.5, -0.5}, {0, 1, 0}),
-			Vertex({ 0.5,  0.5,  0.5}, {0, 1, 0}),
-			Vertex({-0.5,  0.5,  0.5}, {0, 1, 0}),
-			Vertex({ 0.5,  0.5, -0.5}, {0, 1, 0}),
+			Vertex({-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}),
+			Vertex({ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}),
+			Vertex({-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}),
+			Vertex({ 0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}),
 
 			// Bottom
-			Vertex({-0.5, -0.5, -0.5}, {0, -1, 0}),
-			Vertex({ 0.5, -0.5,  0.5}, {0, -1, 0}),
-			Vertex({-0.5, -0.5,  0.5}, {0, -1, 0}),
-			Vertex({ 0.5, -0.5, -0.5}, {0, -1, 0})
+			Vertex({-0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}),
+			Vertex({ 0.5f, -0.5f,  0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}),
+			Vertex({-0.5f, -0.5f,  0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}),
+			Vertex({ 0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f})
 		};
 
 		const std::vector<uint32_t> indices = {
@@ -81,11 +81,13 @@ Scene::Scene(Device* device) : device(device) {
 		floor = addInstance(quad);
 		floor->color = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 		floor->transform = glm::scale(glm::mat4(1.0f), glm::vec3(6.0f));
+		floor->textureId = 0;
 	}
 
 	// Rotating cube
 	{
 		rotatingCube = addInstance(cube);
+		rotatingCube->textureId = 1;
 	}
 
 	// Point light
@@ -157,12 +159,13 @@ std::shared_ptr<Scene::Object> Scene::addObject(const std::vector<Vertex>& verti
 }
 
 std::shared_ptr<Scene::Instance> Scene::addInstance(const std::shared_ptr<Object>& object,
-	const glm::vec3& color, const glm::mat4& transform, uint32_t mask) {
+	int32_t textureId, const glm::vec3& color, const glm::mat4& transform, uint32_t mask) {
 
 	auto inst = std::make_shared<Instance>();
 	inst->index = instances.size();
 	inst->object = object;
 	inst->color = glm::vec4(color, 1.0f);
+	inst->textureId = textureId;
 	inst->transform = transform;
 	inst->mask = mask;
 
@@ -246,7 +249,8 @@ std::unique_ptr<Buffer> Scene::createBuffer(VkDeviceSize size, const void* data)
 
 Scene::ShaderRecord Scene::createShaderRecord(const std::shared_ptr<Instance>& instance) {
 	ShaderRecord r = {};
-	r.objectId = glm::ivec4(getObjectIndex(instance));
+	r.ids.x = getObjectIndex(instance);
+	r.ids.y = instance->textureId;
 	r.color = instance->color;
 	r.normalMatrix = glm::transpose(glm::inverse(glm::mat3(instance->transform)));
 
