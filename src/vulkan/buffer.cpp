@@ -44,9 +44,9 @@ void Buffer::bindAsIndexBuffer(VkIndexType indexType, VkDeviceSize offset) {
 	vkCmdBindIndexBuffer(device->getCommandBuffer(), buffer, offset, indexType);
 }
 
-void* Buffer::map() {
+void* Buffer::map(VkDeviceSize offset, VkDeviceSize size) {
 	void* data;
-	vkMapMemory(*device, memory, 0, size, 0, &data);
+	vkMapMemory(*device, memory, offset, size, 0, &data);
 	return data;
 }
 

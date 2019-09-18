@@ -4,36 +4,72 @@
 
 Scene::Scene(Device* device) : device(device) {
 
-	// Rotating quad
-	{
-		const std::vector<Vertex> vertices = {
-			Vertex({-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}),
-			Vertex({0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}),
-			Vertex({-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}),
-			Vertex({0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f})
-		};
-
-		const std::vector<uint32_t> indices = {
-			0, 1, 2, 0, 3, 1
-		};
-
-		rotatingQuad = addInstance(addObject(vertices, indices));
-	}
-
 	// Floor
 	{
 		const std::vector<Vertex> vertices = {
-			Vertex({-3.0f, -3.0f, -1.5f}, {1.0f, 0.0f, 1.0f}),
-			Vertex({3.0f, 3.0f, -1.5f}, {1.0f, 0.0f, 1.0f}),
-			Vertex({-3.0f, 3.0f, -1.5f}, {1.0f, 0.0f, 1.0f}),
-			Vertex({3.0f, -3.0f, -1.5f}, {1.0f, 0.0f, 1.0f})
+			Vertex({-3.0f, -3.0f, -1.5f}, {0.0f, 0.0f, 1.0f}),
+			Vertex({3.0f, 3.0f, -1.5f}, {0.0f, 0.0f, 1.0f}),
+			Vertex({-3.0f, 3.0f, -1.5f}, {0.0f, 0.0f, 1.0f}),
+			Vertex({3.0f, -3.0f, -1.5f}, {0.0f, 0.0f, 1.0f})
 		};
 
 		const std::vector<uint32_t> indices = {
 			0, 1, 2, 0, 3, 1
 		};
 
-		floor = addInstance(addObject(vertices, indices));
+		floor = addInstance(addObject(vertices, indices), glm::vec3(1.0f, 0.0f, 1.0f));
+	}
+
+	// Rotating cube
+	{
+		const std::vector<Vertex> vertices = {
+			// Top
+			Vertex({-1, -1, 1}, {0, 0, 1}),
+			Vertex({ 1,  1, 1}, {0, 0, 1}),
+			Vertex({-1,  1, 1}, {0, 0, 1}),
+			Vertex({ 1, -1, 1}, {0, 0, 1}),
+
+			// Bottom
+			Vertex({-1, -1, -1}, {0, 0, -1}),
+			Vertex({ 1,  1, -1}, {0, 0, -1}),
+			Vertex({-1,  1, -1}, {0, 0, -1}),
+			Vertex({ 1, -1, -1}, {0, 0, -1}),
+
+			// Left
+			Vertex({-1, -1, -1}, {-1, 0, 0}),
+			Vertex({-1,  1,  1}, {-1, 0, 0}),
+			Vertex({-1, -1,  1}, {-1, 0, 0}),
+			Vertex({-1,  1, -1}, {-1, 0, 0}),
+
+			// Right
+			Vertex({ 1, -1, -1}, {1, 0, 0}),
+			Vertex({ 1,  1,  1}, {1, 0, 0}),
+			Vertex({ 1, -1,  1}, {1, 0, 0}),
+			Vertex({ 1,  1, -1}, {1, 0, 0}),
+
+			// Top
+			Vertex({-1,  1, -1}, {0, 1, 0}),
+			Vertex({ 1,  1,  1}, {0, 1, 0}),
+			Vertex({-1,  1,  1}, {0, 1, 0}),
+			Vertex({ 1,  1, -1}, {0, 1, 0}),
+
+			// Bottom
+			Vertex({-1, -1, -1}, {0, -1, 0}),
+			Vertex({ 1, -1,  1}, {0, -1, 0}),
+			Vertex({-1, -1,  1}, {0, -1, 0}),
+			Vertex({ 1, -1, -1}, {0, -1, 0})
+		};
+
+		const std::vector<uint32_t> indices = {
+			0, 1, 2, 0, 3, 1,
+			4, 5, 6, 4, 5, 7,
+			8, 9, 10, 8, 9, 11,
+			12, 13, 14, 12, 13, 15,
+			16, 17, 18, 16, 17, 19,
+			20, 21, 22, 20, 21, 23
+		};
+
+		rotatingCube = addInstance(addObject(vertices, indices), glm::vec3(0.0f, 1.0f, 1.0f));
 	}
 
 	createPipeline();
@@ -64,6 +100,23 @@ void Scene::trace() {
 		VK_NULL_HANDLE, 0, 0, ext.width, ext.height, 1);
 }
 
+void Scene::updateInstance(std::shared_ptr<Instance> instance) {
+
+	VkDeviceSize offset = shaderBindingTable->getOffset(ShaderBindingTable::EntryType::HitGroup);
+	offset += shaderBindingTable->getEntrySize(ShaderBindingTable::EntryType::HitGroup) * instance->index;
+	offset += shaderBindingTable->getShaderGroupHandleSize();
+
+	// Update SBT entry
+	ShaderRecord r = createShaderRecord(instance);
+
+	auto buffer = shaderBindingTable->getBuffer();
+	void* data = buffer->map(offset, sizeof(ShaderRecord));
+
+	memcpy_s(data, sizeof(ShaderRecord), &r, sizeof(r));
+
+	buffer->unmap();
+}
+
 std::shared_ptr<Scene::Object> Scene::addObject(const std::vector<Vertex>& vertices,
 	const std::vector<uint32_t>& indices) {
 
@@ -82,10 +135,13 @@ std::shared_ptr<Scene::Object> Scene::addObject(const std::vector<Vertex>& verti
 }
 
 std::shared_ptr<Scene::Instance> Scene::addInstance(const std::shared_ptr<Object>& object,
+	const glm::vec3 color,
 	const glm::mat4& transform) {
 
 	auto inst = std::make_shared<Instance>();
+	inst->index = instances.size();
 	inst->object = object;
+	inst->color = glm::vec4(color, 1.0f);
 	inst->transform = transform;
 
 	instances.push_back(inst);
@@ -134,8 +190,8 @@ void Scene::createShaderBindingTable() {
 	shaderBindingTable->addEntry(ShaderBindingTable::EntryType::Miss);
 
 	for (const auto& inst : instances) {
-		int id = getObjectIndex(inst);
-		shaderBindingTable->addEntry(ShaderBindingTable::EntryType::HitGroup, &id, sizeof(id));
+		ShaderRecord data = createShaderRecord(inst);
+		shaderBindingTable->addEntry(ShaderBindingTable::EntryType::HitGroup, &data, sizeof(data));
 	}
 
 	shaderBindingTable->create();
@@ -155,6 +211,15 @@ std::unique_ptr<Buffer> Scene::createBuffer(VkDeviceSize size, const void* data)
 	localBuffer.copyTo(buffer.get());
 
 	return buffer;
+}
+
+Scene::ShaderRecord Scene::createShaderRecord(const std::shared_ptr<Instance>& instance) {
+	ShaderRecord r = {};
+	r.objectId = glm::ivec4(getObjectIndex(instance));
+	r.color = instance->color;
+	r.normalMatrix = glm::transpose(glm::inverse(glm::mat3(instance->transform)));
+
+	return r;
 }
 
 int Scene::getObjectIndex(const std::shared_ptr<Instance> instance) {

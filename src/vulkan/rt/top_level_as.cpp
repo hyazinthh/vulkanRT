@@ -33,13 +33,15 @@ Buffer* TopLevelAS::createInstanceBuffer(const std::vector<Instance>& instances)
 			throw std::runtime_error("Failed to get acceleration structure handle");
 		}
 
+		glm::mat4 transform = glm::transpose(inst.transform);
+
 		VkGeometryInstance gInst;
 		gInst.instanceId = inst.instanceId;
 		gInst.mask = 0xff;
 		gInst.instanceOffset = inst.hitGroupIndex;
 		gInst.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
 		gInst.accelerationStructureHandle = handle;
-		memcpy(gInst.transform, &inst.transform, sizeof(gInst.transform));
+		memcpy(gInst.transform, &transform, sizeof(gInst.transform));
 
 		geometryInstances.push_back(gInst);
 	}

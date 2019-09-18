@@ -22,7 +22,7 @@ void main() {
     const uint rayFlags = gl_RayFlagsOpaqueNV;
     const uint cullMask = 0xFF;
     const float tmin = 0.0f;
-    const float tmax = 10.0f;
+    const float tmax = 20.0f;
 
     traceNV(scene, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
 

@@ -6,11 +6,11 @@
 
 struct Vertex {
 	glm::vec4 position;
-	glm::vec4 color;
+	glm::vec4 normal;
 
-	Vertex(const glm::vec3& p, const glm::vec3& c) {
+	Vertex(const glm::vec3& p, const glm::vec3& n) {
 		position = glm::vec4(p, 1.0f);
-		color = glm::vec4(c, 1.0f);
+		normal = glm::vec4(n, 1.0f);
 	}
 
 	static VkVertexInputBindingDescription getBindingDescription() {
@@ -32,7 +32,7 @@ struct Vertex {
 		desc[1].binding = 0;
 		desc[1].location = 1;
 		desc[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		desc[1].offset = offsetof(Vertex, color);
+		desc[1].offset = offsetof(Vertex, normal);
 
 		return desc;
 	}

@@ -16,12 +16,6 @@ struct UniformBufferObject {
 	glm::mat4 projInverse;
 };
 
-uint32_t rayGenIndex;
-
-uint32_t missIndex;
-
-uint32_t hitGroupIndex;
-
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 											 VkDebugUtilsMessageTypeFlagsEXT,
 											 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -81,14 +75,30 @@ Application::~Application() {
 void Application::update(float dt) {
 
 	// Update scene
-	scene->rotatingQuad->transform = glm::rotate(glm::mat4(1.0f), dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	auto id = glm::mat4(1.0f);
+	auto scale = glm::scale(id, glm::vec3(0.5f));
+	auto rotation = glm::rotate(id, dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	auto rotationSelf = glm::rotate(id, -dt * glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	auto translation = glm::translate(id, glm::vec3(1, 1, 0));
+
+	scene->rotatingCube->transform = rotation * translation * rotationSelf * scale;
+
+	auto red = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	auto blue = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+
+	float t = glm::mod(dt, 2.0f);
+	t = (t > 1) ? (2 - t) : t;
+
+	scene->rotatingCube->color = (1 - t) * red + t * blue;
+
+	scene->updateInstance(scene->rotatingCube);
 	scene->buildAccelerationStructure(true);
 
 	// Update matrices
 	auto ext = device->getSwapchain()->getExtent();
 
 	UniformBufferObject ubo = {};
-	ubo.viewInverse = glm::inverse(glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+	ubo.viewInverse = glm::inverse(glm::lookAt(glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(0.0f, 0.0f, -1.5f), glm::vec3(0.0f, 0.0f, 1.0f)));
 	ubo.projInverse = glm::inverse(glm::perspective(glm::radians(45.0f), ext.width / (float) ext.height, 0.1f, 10.0f));
 	ubo.projInverse[1][1] *= -1;
 
@@ -327,18 +337,9 @@ void Application::writeDescriptorSets() {
 		{
 			std::vector<VkDescriptorBufferInfo> info;
 
-			{
+			for (const auto& o : scene->getObjects()) {
 				VkDescriptorBufferInfo i = {};
-				i.buffer = *scene->rotatingQuad->object->indexBuffer;
-				i.offset = 0;
-				i.range = VK_WHOLE_SIZE;
-
-				info.push_back(i);
-			}
-
-			{
-				VkDescriptorBufferInfo i = {};
-				i.buffer = *scene->floor->object->indexBuffer;
+				i.buffer = *o->indexBuffer;
 				i.offset = 0;
 				i.range = VK_WHOLE_SIZE;
 

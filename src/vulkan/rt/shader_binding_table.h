@@ -45,11 +45,16 @@ class ShaderBindingTable {
 
 		VkDeviceSize getOffset(EntryType type) const;
 
+		VkDeviceSize getShaderGroupHandleSize() const {
+			return shaderGroupHandleSize;
+		}
+
 	private:
 
 		// For each entry, copy the shader identifier followed by its resource pointers and/or root
 		// constants in outputData, and returns the size in bytes actually written to outputData.
-		VkDeviceSize copyShaderData(EntryType type, uint8_t* outputData, const uint8_t* shaderHandleStorage);
+		VkDeviceSize copyShaderData(EntryType type, uint8_t* outputData,
+			const uint8_t* shaderHandleStorage, bool inlineDataOnly = false);
 
 		void getRaytracingProperties();
 

@@ -21,7 +21,7 @@ class Buffer {
 
 		VkDeviceSize getSize() { return size; }
 
-		void* map();
+		void* map(VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
 
 		void unmap();
 

@@ -48,7 +48,9 @@ ShaderBindingTable* ShaderBindingTable::create() {
 	return this;
 }
 
-VkDeviceSize ShaderBindingTable::copyShaderData(EntryType type, uint8_t* outputData, const uint8_t* shaderHandleStorage) {
+VkDeviceSize ShaderBindingTable::copyShaderData(EntryType type, uint8_t* outputData,
+	const uint8_t* shaderHandleStorage, bool inlineDataOnly) {
+
 	uint8_t* pData = outputData;
 	const auto& entries = this->entries[(int) type];
 	auto entrySize = getEntrySize(entries);
@@ -59,7 +61,9 @@ VkDeviceSize ShaderBindingTable::copyShaderData(EntryType type, uint8_t* outputD
 
 		// Copy the shader identifier that was previously obtained with
 		// vkGetRayTracingShaderGroupHandlesNV
-		memcpy(pData, shaderHandleStorage + groupIndex * shaderGroupHandleSize, shaderGroupHandleSize);
+		if (!inlineDataOnly) {
+			memcpy(pData, shaderHandleStorage + groupIndex * shaderGroupHandleSize, shaderGroupHandleSize);
+		}
 
 		// Copy all its resources pointers or values in bulk
 		if (!data.empty()) {
@@ -114,7 +118,7 @@ uint32_t ShaderBindingTable::getBaseIndex(EntryType type) const {
 	uint32_t index = 0;
 
 	for (uint32_t i = 0; i < (uint32_t) type; i++) {
-		index += entries[i].size();
+		index += (uint32_t) entries[i].size();
 	}
 
 	return index;
