@@ -2,62 +2,66 @@
 #include "rt/raytracing_pipeline.h"
 #include "extensions.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 Scene::Scene(Device* device) : device(device) {
 
-	// Floor
+	// Objects
+	std::shared_ptr<Object> quad;
+	std::shared_ptr<Object> cube;
+
 	{
 		const std::vector<Vertex> vertices = {
-			Vertex({-3.0f, -3.0f, -1.5f}, {0.0f, 0.0f, 1.0f}),
-			Vertex({3.0f, 3.0f, -1.5f}, {0.0f, 0.0f, 1.0f}),
-			Vertex({-3.0f, 3.0f, -1.5f}, {0.0f, 0.0f, 1.0f}),
-			Vertex({3.0f, -3.0f, -1.5f}, {0.0f, 0.0f, 1.0f})
+			Vertex({-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}),
+			Vertex({ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}),
+			Vertex({-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}),
+			Vertex({ 0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f})
 		};
 
 		const std::vector<uint32_t> indices = {
 			0, 1, 2, 0, 3, 1
 		};
 
-		floor = addInstance(addObject(vertices, indices), glm::vec3(1.0f, 0.0f, 1.0f));
+		quad = addObject(vertices, indices);
 	}
 
-	// Rotating cube
 	{
 		const std::vector<Vertex> vertices = {
 			// Top
-			Vertex({-1, -1, 1}, {0, 0, 1}),
-			Vertex({ 1,  1, 1}, {0, 0, 1}),
-			Vertex({-1,  1, 1}, {0, 0, 1}),
-			Vertex({ 1, -1, 1}, {0, 0, 1}),
+			Vertex({-0.5, -0.5, 0.5}, {0, 0, 1}),
+			Vertex({ 0.5,  0.5, 0.5}, {0, 0, 1}),
+			Vertex({-0.5,  0.5, 0.5}, {0, 0, 1}),
+			Vertex({ 0.5, -0.5, 0.5}, {0, 0, 1}),
 
 			// Bottom
-			Vertex({-1, -1, -1}, {0, 0, -1}),
-			Vertex({ 1,  1, -1}, {0, 0, -1}),
-			Vertex({-1,  1, -1}, {0, 0, -1}),
-			Vertex({ 1, -1, -1}, {0, 0, -1}),
+			Vertex({-0.5, -0.5, -0.5}, {0, 0, -1}),
+			Vertex({ 0.5,  0.5, -0.5}, {0, 0, -1}),
+			Vertex({-0.5,  0.5, -0.5}, {0, 0, -1}),
+			Vertex({ 0.5, -0.5, -0.5}, {0, 0, -1}),
 
 			// Left
-			Vertex({-1, -1, -1}, {-1, 0, 0}),
-			Vertex({-1,  1,  1}, {-1, 0, 0}),
-			Vertex({-1, -1,  1}, {-1, 0, 0}),
-			Vertex({-1,  1, -1}, {-1, 0, 0}),
+			Vertex({-0.5, -0.5, -0.5}, {-1, 0, 0}),
+			Vertex({-0.5,  0.5,  0.5}, {-1, 0, 0}),
+			Vertex({-0.5, -0.5,  0.5}, {-1, 0, 0}),
+			Vertex({-0.5,  0.5, -0.5}, {-1, 0, 0}),
 
 			// Right
-			Vertex({ 1, -1, -1}, {1, 0, 0}),
-			Vertex({ 1,  1,  1}, {1, 0, 0}),
-			Vertex({ 1, -1,  1}, {1, 0, 0}),
-			Vertex({ 1,  1, -1}, {1, 0, 0}),
+			Vertex({ 0.5, -0.5, -0.5}, {1, 0, 0}),
+			Vertex({ 0.5,  0.5,  0.5}, {1, 0, 0}),
+			Vertex({ 0.5, -0.5,  0.5}, {1, 0, 0}),
+			Vertex({ 0.5,  0.5, -0.5}, {1, 0, 0}),
 
 			// Top
-			Vertex({-1,  1, -1}, {0, 1, 0}),
-			Vertex({ 1,  1,  1}, {0, 1, 0}),
-			Vertex({-1,  1,  1}, {0, 1, 0}),
-			Vertex({ 1,  1, -1}, {0, 1, 0}),
+			Vertex({-0.5,  0.5, -0.5}, {0, 1, 0}),
+			Vertex({ 0.5,  0.5,  0.5}, {0, 1, 0}),
+			Vertex({-0.5,  0.5,  0.5}, {0, 1, 0}),
+			Vertex({ 0.5,  0.5, -0.5}, {0, 1, 0}),
 
 			// Bottom
-			Vertex({-1, -1, -1}, {0, -1, 0}),
-			Vertex({ 1, -1,  1}, {0, -1, 0}),
-			Vertex({-1, -1,  1}, {0, -1, 0}),
-			Vertex({ 1, -1, -1}, {0, -1, 0})
+			Vertex({-0.5, -0.5, -0.5}, {0, -1, 0}),
+			Vertex({ 0.5, -0.5,  0.5}, {0, -1, 0}),
+			Vertex({-0.5, -0.5,  0.5}, {0, -1, 0}),
+			Vertex({ 0.5, -0.5, -0.5}, {0, -1, 0})
 		};
 
 		const std::vector<uint32_t> indices = {
@@ -69,7 +73,25 @@ Scene::Scene(Device* device) : device(device) {
 			20, 21, 22, 20, 21, 23
 		};
 
-		rotatingCube = addInstance(addObject(vertices, indices), glm::vec3(0.0f, 1.0f, 1.0f));
+		cube = addObject(vertices, indices);
+	}
+
+	// Floor
+	{
+		floor = addInstance(quad);
+		floor->color = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
+		floor->transform = glm::scale(glm::mat4(1.0f), glm::vec3(6.0f));
+	}
+
+	// Rotating cube
+	{
+		rotatingCube = addInstance(cube);
+	}
+
+	// Point light
+	{
+		pointLight = addInstance(cube);
+		pointLight->mask = 0x01;
 	}
 
 	createPipeline();
@@ -135,14 +157,14 @@ std::shared_ptr<Scene::Object> Scene::addObject(const std::vector<Vertex>& verti
 }
 
 std::shared_ptr<Scene::Instance> Scene::addInstance(const std::shared_ptr<Object>& object,
-	const glm::vec3 color,
-	const glm::mat4& transform) {
+	const glm::vec3& color, const glm::mat4& transform, uint32_t mask) {
 
 	auto inst = std::make_shared<Instance>();
 	inst->index = instances.size();
 	inst->object = object;
 	inst->color = glm::vec4(color, 1.0f);
 	inst->transform = transform;
+	inst->mask = mask;
 
 	instances.push_back(inst);
 	return inst;
@@ -152,7 +174,9 @@ void Scene::buildAccelerationStructure(bool updateOnly) {
 
 	std::vector<TopLevelAS::Instance> instances;
 	for (const auto& i : this->instances) {
-		instances.push_back(TopLevelAS::Instance(i->object->blAS.get(), 0, i->hitGroup, i->transform));
+		instances.push_back(
+			TopLevelAS::Instance(i->object->blAS.get(), (uint32_t) i->index, i->hitGroup, i->mask, i->transform)
+		);
 	}
 
 	if (updateOnly && topLevelAS.get()) {
@@ -167,6 +191,7 @@ void Scene::createPipeline() {
 	std::unique_ptr<Shader> shaderShadowMiss(Shader::loadFromFile(device, "shaders/shadow.rmiss", Shader::Type::Miss));
 	std::unique_ptr<Shader> shaderClosestHit(Shader::loadFromFile(device, "shaders/primary.rchit", Shader::Type::ClosestHit));
 	std::unique_ptr<Shader> shaderRayGen(Shader::loadFromFile(device, "shaders/primary.rgen", Shader::Type::RayGen));
+	std::unique_ptr<Shader> shaderLight(Shader::loadFromFile(device, "shaders/light_source.rchit", Shader::Type::ClosestHit));
 
 	RaytracingPipeline* pipeline = new RaytracingPipeline(device);
 
@@ -174,11 +199,17 @@ void Scene::createPipeline() {
 	pipeline->addShaderStage(shaderMiss.get());
 	pipeline->addShaderStage(shaderShadowMiss.get());
 
-	for (auto& inst : instances) {
-		inst->hitGroup = pipeline->startHitGroup();
-		pipeline->addHitShaderStage(shaderClosestHit.get());
-		pipeline->endHitGroup();
-	}
+	floor->hitGroup = pipeline->startHitGroup();
+	pipeline->addHitShaderStage(shaderClosestHit.get());
+	pipeline->endHitGroup();
+
+	rotatingCube->hitGroup = pipeline->startHitGroup();
+	pipeline->addHitShaderStage(shaderClosestHit.get());
+	pipeline->endHitGroup();
+
+	pointLight->hitGroup = pipeline->startHitGroup();
+	pipeline->addHitShaderStage(shaderLight.get());
+	pipeline->endHitGroup();
 
 	this->pipeline.reset(pipeline->create());
 }

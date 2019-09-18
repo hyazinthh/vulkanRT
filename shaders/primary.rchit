@@ -20,6 +20,11 @@ layout(set = 0, binding = 4) buffer Indices {
     uint i[];
 } indices[];
 
+layout(set = 0, binding = 5) uniform UniformBufferObject {
+    vec4 position;
+    vec4 diffuseColor;
+} light;
+
 layout(shaderRecordNV) buffer ShaderRecord {
 	int objectId;
     vec4 color;
@@ -52,8 +57,7 @@ void main() {
     Vertex v = getHitPoint();
 
     // Lighting
-    vec3 lightPosition = vec3(1, -3, 5);
-    vec3 lightVector = normalize(lightPosition - v.position.xyz);
+    vec3 lightVector = normalize(light.position.xyz - v.position.xyz);
 
     // Normal
     vec3 normal = normalize(normalMatrix * v.normal);
@@ -66,8 +70,8 @@ void main() {
     isShadowed = true;
 
     traceNV(scene, gl_RayFlagsTerminateOnFirstHitNV | gl_RayFlagsOpaqueNV | gl_RayFlagsSkipClosestHitShaderNV, 
-        0xFF, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */,
-        1 /* missIndex */, origin, tmin, lightPosition - origin, tmax, 1 /*payload location*/);
+        0xFE, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */,
+        1 /* missIndex */, origin, tmin, light.position.xyz - origin, tmax, 1 /*payload location*/);
 
     // Diffuse lighting
     float diffuse = isShadowed ? 0.2 : max(dot(lightVector, normal), 0.2);

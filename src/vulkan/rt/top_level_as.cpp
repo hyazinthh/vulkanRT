@@ -37,7 +37,7 @@ Buffer* TopLevelAS::createInstanceBuffer(const std::vector<Instance>& instances)
 
 		VkGeometryInstance gInst;
 		gInst.instanceId = inst.instanceId;
-		gInst.mask = 0xff;
+		gInst.mask = inst.mask;
 		gInst.instanceOffset = inst.hitGroupIndex;
 		gInst.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
 		gInst.accelerationStructureHandle = handle;
@@ -60,5 +60,12 @@ Buffer* TopLevelAS::createInstanceBuffer(const std::vector<Instance>& instances)
 }
 
 TopLevelAS::Instance::Instance(BottomLevelAS* blAS,
-	uint32_t instanceId, uint32_t hitGroup, const glm::mat4& transform)
-	: bottomLevelAS(blAS), transform(transform), instanceId(instanceId), hitGroupIndex(hitGroup) {}
+	uint32_t instanceId, uint32_t hitGroup, uint32_t mask,
+	const glm::mat4& transform) {
+
+	this->bottomLevelAS = blAS;
+	this->instanceId = instanceId;
+	this->hitGroupIndex = hitGroup;
+	this->mask = mask;
+	this->transform = transform;
+}

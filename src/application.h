@@ -80,7 +80,9 @@ class Application {
 
 		Scene* scene = nullptr;
 
-		Buffer* uniformBuffer = nullptr;
+		Buffer* cameraUniformBuffer = nullptr;
+
+		Buffer* lightUniformBuffer = nullptr;
 
 		std::vector<VkDescriptorSetLayoutBinding> bindings;
 };

@@ -23,6 +23,7 @@ class Scene {
 			glm::vec4 color;
 			std::shared_ptr<Object> object;
 			uint32_t hitGroup;
+			uint32_t mask;
 		};
 
 		Scene(Device* device);
@@ -37,8 +38,9 @@ class Scene {
 			const std::vector<uint32_t>& indices);
 
 		std::shared_ptr<Instance> addInstance(const std::shared_ptr<Object>& object,
-			const glm::vec3 color,
-			const glm::mat4& transform = glm::mat4(1.0f));
+			const glm::vec3& color = glm::vec3(1.0f),
+			const glm::mat4& transform = glm::mat4(1.0f),
+			uint32_t mask = 0xff);
 
 		void buildAccelerationStructure(bool updateOnly = false);
 
@@ -53,6 +55,8 @@ class Scene {
 		std::shared_ptr<Scene::Instance> rotatingCube;
 
 		std::shared_ptr<Scene::Instance> floor;
+
+		std::shared_ptr<Scene::Instance> pointLight;
 
 	private:
 

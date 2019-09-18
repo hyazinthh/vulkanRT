@@ -7,13 +7,14 @@ class TopLevelAS : public AccelerationStructure {
 	public:
 		struct Instance {
 			Instance(BottomLevelAS* blAS,
-				uint32_t instanceId, uint32_t hitGroup,
-				const glm::mat4& transform = glm::mat4(1.0f));
+				uint32_t instanceId, uint32_t hitGroup, uint32_t mask,
+				const glm::mat4& transform);
 
 			BottomLevelAS* bottomLevelAS;
-			const glm::mat4 transform;
 			uint32_t instanceId;
 			uint32_t hitGroupIndex;
+			uint32_t mask;
+			glm::mat4 transform;
 		};
 
 		TopLevelAS(Device* device, const std::vector<Instance>& instances, bool allowUpdate = false);

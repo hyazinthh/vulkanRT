@@ -11,9 +11,14 @@
 
 #include "vulkan/extensions.h"
 
-struct UniformBufferObject {
+struct CameraUniforms {
 	glm::mat4 viewInverse;
 	glm::mat4 projInverse;
+};
+
+struct LightUniforms {
+	glm::vec4 position;
+	glm::vec4 diffuseColor;
 };
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -63,8 +68,8 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 Application::~Application() {
 
 	delete scene;
-	delete uniformBuffer;
-
+	delete cameraUniformBuffer;
+	delete lightUniformBuffer;
 	delete device;
 	vkDestroySurfaceKHR(*instance, surface, nullptr);
 	delete instance;
@@ -76,33 +81,50 @@ void Application::update(float dt) {
 
 	// Update scene
 	auto id = glm::mat4(1.0f);
-	auto scale = glm::scale(id, glm::vec3(0.5f));
-	auto rotation = glm::rotate(id, dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	auto rotationSelf = glm::rotate(id, -dt * glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	auto translation = glm::translate(id, glm::vec3(1, 1, 0));
 
-	scene->rotatingCube->transform = rotation * translation * rotationSelf * scale;
+	{
+		auto rotation = glm::rotate(id, dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		auto rotationSelf = glm::rotate(id, -dt * glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		auto translation = glm::translate(id, glm::vec3(1, 1, 1));
 
-	auto red = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-	auto blue = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+		scene->rotatingCube->transform = rotation * translation * rotationSelf;
 
-	float t = glm::mod(dt, 2.0f);
-	t = (t > 1) ? (2 - t) : t;
+		auto red = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+		auto blue = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
-	scene->rotatingCube->color = (1 - t) * red + t * blue;
+		float t = glm::sin(dt * glm::radians(90.0f));
+		scene->rotatingCube->color = (1 - t) * red + t * blue;
+	}
+
+	LightUniforms light = {};
+
+	{
+		auto scale = glm::scale(id, glm::vec3(0.025f));
+		auto translation = glm::translate(id, glm::vec3(
+			glm::cos(dt * glm::radians(90.0f)) * 3, 
+			0,
+			3.5f + glm::sin(dt * glm::radians(180.0f)) * 0.5f)
+		);
+
+		scene->pointLight->transform = translation * scale;
+		light.position = scene->pointLight->transform * glm::vec4(0, 0, 0, 1);
+	}
+
+	lightUniformBuffer->fill(&light);
 
 	scene->updateInstance(scene->rotatingCube);
+	scene->updateInstance(scene->pointLight);
 	scene->buildAccelerationStructure(true);
 
 	// Update matrices
 	auto ext = device->getSwapchain()->getExtent();
 
-	UniformBufferObject ubo = {};
-	ubo.viewInverse = glm::inverse(glm::lookAt(glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(0.0f, 0.0f, -1.5f), glm::vec3(0.0f, 0.0f, 1.0f)));
-	ubo.projInverse = glm::inverse(glm::perspective(glm::radians(45.0f), ext.width / (float) ext.height, 0.1f, 10.0f));
-	ubo.projInverse[1][1] *= -1;
+	CameraUniforms camera = {};
+	camera.viewInverse = glm::inverse(glm::lookAt(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+	camera.projInverse = glm::inverse(glm::perspective(glm::radians(45.0f), ext.width / (float) ext.height, 0.1f, 10.0f));
+	camera.projInverse[1][1] *= -1;
 
-	uniformBuffer->fill(&ubo);
+	cameraUniformBuffer->fill(&camera);
 }
 
 void Application::run() {
@@ -191,7 +213,13 @@ void Application::createScene() {
 
 void Application::createBuffers() {
 	{
-		uniformBuffer = new Buffer(device, sizeof(UniformBufferObject),
+		cameraUniformBuffer = new Buffer(device, sizeof(CameraUniforms),
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	}
+
+	{
+		lightUniformBuffer = new Buffer(device, sizeof(LightUniforms),
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
@@ -261,6 +289,19 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 		bindings.push_back(b);
 	}
 
+	// Light uniform buffer
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = 5;
+		b.descriptorCount = 1;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+		bindings.push_back(b);
+	}
+
+
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = (uint32_t) bindings.size();
@@ -293,7 +334,7 @@ void Application::writeDescriptorSets() {
 
 		{
 			VkDescriptorBufferInfo info = {};
-			info.buffer = *uniformBuffer;
+			info.buffer = *cameraUniformBuffer;
 			info.offset = 0;
 			info.range = VK_WHOLE_SIZE;
 
@@ -354,6 +395,24 @@ void Application::writeDescriptorSets() {
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			wds.dstBinding = 4;
 			wds.pBufferInfo = info.data();
+
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
+		}
+
+		{
+			VkDescriptorBufferInfo info = {};
+			info.buffer = *lightUniformBuffer;
+			info.offset = 0;
+			info.range = VK_WHOLE_SIZE;
+
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.dstSet = ds;
+			wds.dstArrayElement = 0;
+			wds.descriptorCount = 1;
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			wds.dstBinding = 5;
+			wds.pBufferInfo = &info;
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
 		}
