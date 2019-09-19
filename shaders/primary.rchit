@@ -8,7 +8,9 @@ layout(location = 1) rayPayloadNV bool isShadowed;
 struct Vertex {
     vec4 position;
     vec3 normal;
-    vec2 texCoord;
+    vec3 tangent;
+    vec3 bitangent;
+    vec2 tc;
 };
 
 layout(set = 0, binding = 0) uniform accelerationStructureNV scene;
@@ -30,7 +32,7 @@ layout(set = 0, binding = 6) uniform sampler2D[] textureSamplers;
 
 layout(shaderRecordNV) buffer ShaderRecord {
 	int objectId;
-    int textureId;
+    int textureId[3];
     vec4 color;
     mat3 normalMatrix;
 };
@@ -51,8 +53,10 @@ Vertex getHitPoint() {
 
     Vertex hitPoint;
     hitPoint.position = bc.x * v0.position + bc.y * v1.position + bc.z * v2.position;
-    hitPoint.normal = bc.x * v0.normal + bc.y * v1.normal + bc.z * v2.normal;
-    hitPoint.texCoord = bc.x * v0.texCoord + bc.y * v1.texCoord + bc.z * v2.texCoord;
+    hitPoint.normal = normalize(bc.x * v0.normal + bc.y * v1.normal + bc.z * v2.normal);
+    hitPoint.tangent = normalize(bc.x * v0.tangent + bc.y * v1.tangent + bc.z * v2.tangent);
+    hitPoint.bitangent = normalize(bc.x * v0.bitangent + bc.y * v1.bitangent + bc.z * v2.bitangent);
+    hitPoint.tc = bc.x * v0.tc + bc.y * v1.tc + bc.z * v2.tc;
 
     return hitPoint;
 }
@@ -65,7 +69,14 @@ void main() {
     vec3 lightVector = normalize(light.position.xyz - v.position.xyz);
 
     // Normal
-    vec3 normal = normalize(normalMatrix * v.normal);
+    vec3 N = normalize(normalMatrix * v.normal);
+    vec3 T = normalize(normalMatrix * v.tangent);
+    vec3 B = normalize(normalMatrix * v.bitangent);
+
+    if (textureId[1] > -1) {
+        vec3 n = texture(textureSamplers[textureId[1]], v.tc.xy).xyz * 2.0f - 1.0f;
+        N = normalize(mat3(T, B, N) * n);
+    }
 
     // Shadow ray
     float tmin = 0.001;
@@ -79,9 +90,9 @@ void main() {
         1 /* missIndex */, origin, tmin, light.position.xyz - origin, tmax, 1 /*payload location*/);
 
     // Diffuse color
-    vec4 color = (textureId > -1) ? texture(textureSamplers[textureId], v.texCoord.xy) : color;
+    vec4 color = (textureId[0] > -1) ? texture(textureSamplers[textureId[0]], v.tc.xy) : color;
 
     // Diffuse lighting
-    float diffuse = isShadowed ? 0.2 : max(dot(lightVector, normal), 0.2);
-    resultColor =  color * diffuse;
+    float diffuse = isShadowed ? 0.2 : max(dot(lightVector, N), 0.2);
+    resultColor = color * diffuse;
 }

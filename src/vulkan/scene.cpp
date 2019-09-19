@@ -12,10 +12,10 @@ Scene::Scene(Device* device) : device(device) {
 
 	{
 		const std::vector<Vertex> vertices = {
-			Vertex({-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}),
-			Vertex({ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}),
-			Vertex({-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}),
-			Vertex({ 0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f})
+			Vertex({-.5f, -.5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {0, 0}),
+			Vertex({ .5f,  .5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {1, 1}),
+			Vertex({-.5f,  .5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {0, 1}),
+			Vertex({ .5f, -.5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {1, 0})
 		};
 
 		const std::vector<uint32_t> indices = {
@@ -28,40 +28,40 @@ Scene::Scene(Device* device) : device(device) {
 	{
 		const std::vector<Vertex> vertices = {
 			// Top
-			Vertex({-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}),
-			Vertex({ 0.5f,  0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}),
-			Vertex({-0.5f,  0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}),
-			Vertex({ 0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}),
+			Vertex({-.5f, -.5f, .5f}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {0, 0}),
+			Vertex({ .5f,  .5f, .5f}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {1, 1}),
+			Vertex({-.5f,  .5f, .5f}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {0, 1}),
+			Vertex({ .5f, -.5f, .5f}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {1, 0}),
 
 			// Bottom
-			Vertex({-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}),
-			Vertex({ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}),
-			Vertex({-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}),
-			Vertex({ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}),
+			Vertex({-.5f, -.5f, -.5f}, {0, 0, -1}, {1, 0, 0}, {0, 1, 0}, {0, 0}),
+			Vertex({ .5f,  .5f, -.5f}, {0, 0, -1}, {1, 0, 0}, {0, 1, 0}, {1, 1}),
+			Vertex({-.5f,  .5f, -.5f}, {0, 0, -1}, {1, 0, 0}, {0, 1, 0}, {0, 1}),
+			Vertex({ .5f, -.5f, -.5f}, {0, 0, -1}, {1, 0, 0}, {0, 1, 0}, {1, 0}),
 
 			// Left
-			Vertex({-0.5f, -0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}),
-			Vertex({-0.5f,  0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}),
-			Vertex({-0.5f, -0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}),
-			Vertex({-0.5f,  0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}),
+			Vertex({-.5f, -.5f, -.5f}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {0, 0}),
+			Vertex({-.5f,  .5f,  .5f}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 1}),
+			Vertex({-.5f, -.5f,  .5f}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {0, 1}),
+			Vertex({-.5f,  .5f, -.5f}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0}),
 
 			// Right
-			Vertex({ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}),
-			Vertex({ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}),
-			Vertex({ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}),
-			Vertex({ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}),
+			Vertex({ .5f, -.5f, -.5f}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {0, 0}),
+			Vertex({ .5f,  .5f,  .5f}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 1}),
+			Vertex({ .5f, -.5f,  .5f}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {0, 1}),
+			Vertex({ .5f,  .5f, -.5f}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0}),
 
-			// Top
-			Vertex({-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}),
-			Vertex({ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}),
-			Vertex({-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}),
-			Vertex({ 0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}),
+			// Back
+			Vertex({-.5f,  .5f, -.5f}, {0, 1, 0}, {1, 0, 0}, {0, 0, 1}, {0, 0}),
+			Vertex({ .5f,  .5f,  .5f}, {0, 1, 0}, {1, 0, 0}, {0, 0, 1}, {1, 1}),
+			Vertex({-.5f,  .5f,  .5f}, {0, 1, 0}, {1, 0, 0}, {0, 0, 1}, {0, 1}),
+			Vertex({ .5f,  .5f, -.5f}, {0, 1, 0}, {1, 0, 0}, {0, 0, 1}, {1, 0}),
 
-			// Bottom
-			Vertex({-0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}),
-			Vertex({ 0.5f, -0.5f,  0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}),
-			Vertex({-0.5f, -0.5f,  0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}),
-			Vertex({ 0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f})
+			// Front
+			Vertex({-.5f, -.5f, -.5f}, {0, -1, 0}, {1, 0, 0}, {0, 0, 1}, {0, 0}),
+			Vertex({ .5f, -.5f,  .5f}, {0, -1, 0}, {1, 0, 0}, {0, 0, 1}, {1, 1}),
+			Vertex({-.5f, -.5f,  .5f}, {0, -1, 0}, {1, 0, 0}, {0, 0, 1}, {0, 1}),
+			Vertex({ .5f, -.5f, -.5f}, {0, -1, 0}, {1, 0, 0}, {0, 0, 1}, {1, 0})
 		};
 
 		const std::vector<uint32_t> indices = {
@@ -79,15 +79,15 @@ Scene::Scene(Device* device) : device(device) {
 	// Floor
 	{
 		floor = addInstance(quad);
-		floor->color = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-		floor->transform = glm::scale(glm::mat4(1.0f), glm::vec3(6.0f));
-		floor->textureId = 0;
+		floor->transform = glm::scale(glm::mat4(1), glm::vec3(6));
+		floor->textureId[0] = 0;
+		floor->textureId[1] = 2;
 	}
 
 	// Rotating cube
 	{
 		rotatingCube = addInstance(cube);
-		rotatingCube->textureId = 1;
+		rotatingCube->textureId[1] = 2;
 	}
 
 	// Point light
@@ -159,15 +159,15 @@ std::shared_ptr<Scene::Object> Scene::addObject(const std::vector<Vertex>& verti
 }
 
 std::shared_ptr<Scene::Instance> Scene::addInstance(const std::shared_ptr<Object>& object,
-	int32_t textureId, const glm::vec3& color, const glm::mat4& transform, uint32_t mask) {
+	const glm::vec3& color, const glm::mat4& transform, uint32_t mask) {
 
 	auto inst = std::make_shared<Instance>();
 	inst->index = instances.size();
 	inst->object = object;
-	inst->color = glm::vec4(color, 1.0f);
-	inst->textureId = textureId;
+	inst->color = glm::vec4(color, 1);
 	inst->transform = transform;
 	inst->mask = mask;
+	inst->textureId.fill(-1);
 
 	instances.push_back(inst);
 	return inst;
@@ -249,8 +249,10 @@ std::unique_ptr<Buffer> Scene::createBuffer(VkDeviceSize size, const void* data)
 
 Scene::ShaderRecord Scene::createShaderRecord(const std::shared_ptr<Instance>& instance) {
 	ShaderRecord r = {};
-	r.ids.x = getObjectIndex(instance);
-	r.ids.y = instance->textureId;
+	r.ids[0] = getObjectIndex(instance);
+	r.ids[1] = instance->textureId[0];
+	r.ids[2] = instance->textureId[1];
+	r.ids[3] = instance->textureId[2];
 	r.color = instance->color;
 	r.normalMatrix = glm::transpose(glm::inverse(glm::mat3(instance->transform)));
 

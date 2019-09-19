@@ -126,7 +126,7 @@ void Application::update(float dt) {
 	auto ext = device->getSwapchain()->getExtent();
 
 	CameraUniforms camera = {};
-	camera.viewInverse = glm::inverse(glm::lookAt(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+	camera.viewInverse = glm::inverse(glm::lookAt(glm::vec3(3.0f, 3.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
 	camera.projInverse = glm::inverse(glm::perspective(glm::radians(45.0f), ext.width / (float) ext.height, 0.1f, 10.0f));
 	camera.projInverse[1][1] *= -1;
 
@@ -234,6 +234,7 @@ void Application::createBuffers() {
 void Application::createTextures() {
 	textures.push_back(new Texture(device, "textures/checker.png"));
 	textures.push_back(new Texture(device, "textures/marble.png"));
+	textures.push_back(new Texture(device, "textures/normalmap.png"));
 }
 
 VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
