@@ -85,6 +85,8 @@ class Application {
 
 		Buffer* cameraUniformBuffer = nullptr;
 
+		Buffer* settingsUniformBuffer = nullptr;
+
 		Buffer* lightUniformBuffer = nullptr;
 
 		std::vector<Texture*> textures;

@@ -13,9 +13,9 @@ Scene::Scene(Device* device) : device(device) {
 	{
 		const std::vector<Vertex> vertices = {
 			Vertex({-.5f, -.5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {0, 0}),
-			Vertex({ .5f,  .5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {1, 1}),
-			Vertex({-.5f,  .5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {0, 1}),
-			Vertex({ .5f, -.5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {1, 0})
+			Vertex({ .5f,  .5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {4, 4}),
+			Vertex({-.5f,  .5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {0, 4}),
+			Vertex({ .5f, -.5f, 0}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}, {4, 0})
 		};
 
 		const std::vector<uint32_t> indices = {
@@ -87,6 +87,7 @@ Scene::Scene(Device* device) : device(device) {
 	// Rotating cube
 	{
 		rotatingCube = addInstance(cube);
+		rotatingCube->color = glm::vec4(1);
 		rotatingCube->textureId[1] = 2;
 	}
 

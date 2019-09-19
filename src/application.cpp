@@ -11,6 +11,11 @@
 
 #include "vulkan/extensions.h"
 
+struct SettingsUniforms {
+	uint32_t maxBounces;
+	float tmax;
+};
+
 struct CameraUniforms {
 	glm::mat4 viewInverse;
 	glm::mat4 projInverse;
@@ -74,6 +79,7 @@ Application::~Application() {
 		delete t;
 	}
 
+	delete settingsUniformBuffer;
 	delete cameraUniformBuffer;
 	delete lightUniformBuffer;
 	delete device;
@@ -90,16 +96,19 @@ void Application::update(float dt) {
 
 	{
 		auto rotation = glm::rotate(id, dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		auto rotationSelf = glm::rotate(id, -dt * glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		auto rotationSelf = glm::rotate(
+								glm::rotate(id, -dt * glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+							    -dt * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)
+							);
 		auto translation = glm::translate(id, glm::vec3(1, 1, 1));
 
 		scene->rotatingCube->transform = rotation * translation * rotationSelf;
 
-		auto red = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+		/*auto red = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 		auto blue = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
 		float t = glm::sin(dt * glm::radians(90.0f));
-		scene->rotatingCube->color = (1 - t) * red + t * blue;
+		scene->rotatingCube->color = (1 - t) * red + t * blue;*/
 	}
 
 	LightUniforms light = {};
@@ -126,7 +135,7 @@ void Application::update(float dt) {
 	auto ext = device->getSwapchain()->getExtent();
 
 	CameraUniforms camera = {};
-	camera.viewInverse = glm::inverse(glm::lookAt(glm::vec3(3.0f, 3.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+	camera.viewInverse = glm::inverse(glm::lookAt(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
 	camera.projInverse = glm::inverse(glm::perspective(glm::radians(45.0f), ext.width / (float) ext.height, 0.1f, 10.0f));
 	camera.projInverse[1][1] *= -1;
 
@@ -218,6 +227,19 @@ void Application::createScene() {
 }
 
 void Application::createBuffers() {
+
+	{
+		settingsUniformBuffer = new Buffer(device, sizeof(SettingsUniforms),
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+		SettingsUniforms settings;
+		settings.maxBounces = 1;
+		settings.tmax = 48.0f;
+
+		settingsUniformBuffer->fill(&settings);
+	}
+
 	{
 		cameraUniformBuffer = new Buffer(device, sizeof(CameraUniforms),
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -265,10 +287,22 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 		bindings.push_back(b);
 	}
 
-	// Camera uniform buffer
+	// Settings uniform buffer
 	{
 		VkDescriptorSetLayoutBinding b = {};
 		b.binding = 2;
+		b.descriptorCount = 1;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+		bindings.push_back(b);
+	}
+
+	// Camera uniform buffer
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = 3;
 		b.descriptorCount = 1;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		b.pImmutableSamplers = nullptr;
@@ -280,7 +314,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Vertex buffer
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 3;
+		b.binding = 4;
 		b.descriptorCount = 32;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		b.pImmutableSamplers = nullptr;
@@ -292,7 +326,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Index buffer
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 4;
+		b.binding = 5;
 		b.descriptorCount = 32;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		b.pImmutableSamplers = nullptr;
@@ -304,7 +338,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Light uniform buffer
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 5;
+		b.binding = 6;
 		b.descriptorCount = 1;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		b.pImmutableSamplers = nullptr;
@@ -316,7 +350,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Textures
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 6;
+		b.binding = 7;
 		b.descriptorCount = 32;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		b.pImmutableSamplers = nullptr;
@@ -357,7 +391,7 @@ void Application::writeDescriptorSets() {
 
 		{
 			VkDescriptorBufferInfo info = {};
-			info.buffer = *cameraUniformBuffer;
+			info.buffer = *settingsUniformBuffer;
 			info.offset = 0;
 			info.range = VK_WHOLE_SIZE;
 
@@ -368,6 +402,24 @@ void Application::writeDescriptorSets() {
 			wds.descriptorCount = 1;
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			wds.dstBinding = 2;
+			wds.pBufferInfo = &info;
+
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
+		}
+
+		{
+			VkDescriptorBufferInfo info = {};
+			info.buffer = *cameraUniformBuffer;
+			info.offset = 0;
+			info.range = VK_WHOLE_SIZE;
+
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.dstSet = ds;
+			wds.dstArrayElement = 0;
+			wds.descriptorCount = 1;
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			wds.dstBinding = 3;
 			wds.pBufferInfo = &info;
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
@@ -392,7 +444,7 @@ void Application::writeDescriptorSets() {
 			wds.dstArrayElement = 0;
 			wds.descriptorCount = (uint32_t) info.size();
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			wds.dstBinding = 3;
+			wds.dstBinding = 4;
 			wds.pBufferInfo = info.data();
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
@@ -416,7 +468,7 @@ void Application::writeDescriptorSets() {
 			wds.dstArrayElement = 0;
 			wds.descriptorCount = (uint32_t) info.size();
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			wds.dstBinding = 4;
+			wds.dstBinding = 5;
 			wds.pBufferInfo = info.data();
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
@@ -434,7 +486,7 @@ void Application::writeDescriptorSets() {
 			wds.dstArrayElement = 0;
 			wds.descriptorCount = 1;
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			wds.dstBinding = 5;
+			wds.dstBinding = 6;
 			wds.pBufferInfo = &info;
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
@@ -458,7 +510,7 @@ void Application::writeDescriptorSets() {
 			wds.dstArrayElement = 0;
 			wds.descriptorCount = (uint32_t) info.size();
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			wds.dstBinding = 6;
+			wds.dstBinding = 7;
 			wds.pImageInfo = info.data();
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);

@@ -2,8 +2,14 @@
 #extension GL_NV_ray_tracing : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-layout(location = 0) rayPayloadInNV vec4 resultColor;
+struct RayPayload {
+    vec4 color;
+    int bounce;
+};
+
+layout(location = 0) rayPayloadInNV RayPayload payloadIn;
 layout(location = 1) rayPayloadNV bool isShadowed;
+layout(location = 2) rayPayloadNV RayPayload payloadOut;
 
 struct Vertex {
     vec4 position;
@@ -15,20 +21,25 @@ struct Vertex {
 
 layout(set = 0, binding = 0) uniform accelerationStructureNV scene;
 
-layout(set = 0, binding = 3) buffer Vertices { 
+layout(set = 0, binding = 2) uniform RayTracingSettings {
+    uint maxBounces;
+    float tmax;
+} rayTracingSettings;
+
+layout(set = 0, binding = 4) buffer Vertices { 
     Vertex v[]; 
 } vertices[];
 
-layout(set = 0, binding = 4) buffer Indices {
+layout(set = 0, binding = 5) buffer Indices {
     uint i[];
 } indices[];
 
-layout(set = 0, binding = 5) uniform UniformBufferObject {
+layout(set = 0, binding = 6) uniform Light {
     vec4 position;
     vec4 diffuseColor;
 } light;
 
-layout(set = 0, binding = 6) uniform sampler2D[] textureSamplers;
+layout(set = 0, binding = 7) uniform sampler2D[] textureSamplers;
 
 layout(shaderRecordNV) buffer ShaderRecord {
 	int objectId;
@@ -75,6 +86,7 @@ void main() {
 
     if (textureId[1] > -1) {
         vec3 n = texture(textureSamplers[textureId[1]], v.tc.xy).xyz * 2.0f - 1.0f;
+        n = normalize(vec3(n.x, n.y, n.z * 5.0f));
         N = normalize(mat3(T, B, N) * n);
     }
 
@@ -92,7 +104,21 @@ void main() {
     // Diffuse color
     vec4 color = (textureId[0] > -1) ? texture(textureSamplers[textureId[0]], v.tc.xy) : color;
 
+    if (color == vec4(1.0f) && payloadIn.bounce < rayTracingSettings.maxBounces) {
+        payloadOut.bounce = payloadIn.bounce + 1;
+
+        traceNV(scene, gl_RayFlagsOpaqueNV, 
+            0xFF, 
+            0 /* sbtRecordOffset */, 
+            0 /* sbtRecordStride */,
+            0 /* missIndex */, 
+            origin, tmin, reflect(gl_WorldRayDirectionNV, N), rayTracingSettings.tmax, 
+            2 /*payload location*/);
+
+        color = payloadOut.color;
+    }
+
     // Diffuse lighting
     float diffuse = isShadowed ? 0.2 : max(dot(lightVector, N), 0.2);
-    resultColor = color * diffuse;
+    payloadIn.color = color * diffuse;
 }

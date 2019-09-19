@@ -3,12 +3,23 @@
 
 layout(set = 0, binding = 0) uniform accelerationStructureNV scene;
 layout(set = 0, binding = 1, rgba8) uniform image2D resultImage;
-layout(set = 0, binding = 2) uniform UniformBufferObject {
+
+layout(set = 0, binding = 2) uniform RayTracingSettings {
+    uint maxBounces;
+    float tmax;
+} rayTracingSettings;
+
+layout(set = 0, binding = 3) uniform Camera {
     mat4 viewInverse;
     mat4 projInverse;
 } camera;
 
-layout(location = 0) rayPayloadNV vec4 resultColor;
+struct RayPayload {
+    vec4 color;
+    int bounce;
+};
+
+layout(location = 0) rayPayloadNV RayPayload payload;
 
 void main() {
     const vec2 pixelCenter = vec2(gl_LaunchIDNV.xy) + vec2(0.5);
@@ -22,9 +33,10 @@ void main() {
     const uint rayFlags = gl_RayFlagsOpaqueNV;
     const uint cullMask = 0xFF;
     const float tmin = 0.0f;
-    const float tmax = 48.0f;
+    const float tmax = rayTracingSettings.tmax;
 
+    payload.bounce = 0;
     traceNV(scene, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
 
-    imageStore(resultImage, ivec2(gl_LaunchIDNV.xy), resultColor);
+    imageStore(resultImage, ivec2(gl_LaunchIDNV.xy), payload.color);
 }
