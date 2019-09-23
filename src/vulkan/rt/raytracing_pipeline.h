@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../pipeline.h"
+#include "shader_binding_table.h"
 #include <optional>
 
 struct ShaderGroup {
@@ -42,6 +43,8 @@ class RaytracingPipeline : public Pipeline {
 
 		// Finalize the pipeline
 		RaytracingPipeline* create();
+
+		ShaderBindingTable* generateShaderBindingTable();
 
 	private:
 		// Shader stages contained in the pipeline

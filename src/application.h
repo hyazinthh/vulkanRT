@@ -55,8 +55,6 @@ class Application {
 
 		void createBuffers();
 
-		void createTextures();
-
 		void writeDescriptorSets();
 
 		void updateRaytracingRenderTarget();
@@ -88,8 +86,6 @@ class Application {
 		Buffer* settingsUniformBuffer = nullptr;
 
 		Buffer* lightUniformBuffer = nullptr;
-
-		std::vector<Texture*> textures;
 
 		std::vector<VkDescriptorSetLayoutBinding> bindings;
 };

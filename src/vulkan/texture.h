@@ -6,7 +6,7 @@ class Texture {
 
 	public:
 
-		Texture(Device* device, const std::string& fileName);
+		Texture(Device* device, const std::string& fileName, VkFormat format);
 
 		~Texture();
 

@@ -11,6 +11,17 @@
 
 #include "vulkan/extensions.h"
 
+const uint32_t BINDING_SCENE = 0;
+const uint32_t BINDING_OUTPUT = 1;
+const uint32_t BINDING_SETTINGS = 2;
+const uint32_t BINDING_CAMERA = 3;
+const uint32_t BINDING_VERTEX_BUFFERS = 4;
+const uint32_t BINDING_INDEX_BUFFERS = 5;
+const uint32_t BINDING_INSTANCE_BUFFERS = 6;
+const uint32_t BINDING_MATERIAL_BUFFERS = 7;
+const uint32_t BINDING_TEXTURE_SAMPLERS = 8;
+const uint32_t BINDING_LIGHT_BUFFER = 9;
+
 struct SettingsUniforms {
 	uint32_t maxBounces;
 	float tmax;
@@ -66,7 +77,6 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 	createSurface();
 	createDevice();
 	createBuffers();
-	createTextures();
 	createScene();
 	writeDescriptorSets();
 }
@@ -74,11 +84,6 @@ Application::Application(const std::string& name, uint32_t width, uint32_t heigh
 Application::~Application() {
 
 	delete scene;
-
-	for (auto& t : textures) {
-		delete t;
-	}
-
 	delete settingsUniformBuffer;
 	delete cameraUniformBuffer;
 	delete lightUniformBuffer;
@@ -253,12 +258,6 @@ void Application::createBuffers() {
 	}
 }
 
-void Application::createTextures() {
-	textures.push_back(new Texture(device, "textures/checker.png"));
-	textures.push_back(new Texture(device, "textures/marble.png"));
-	textures.push_back(new Texture(device, "textures/normalmap.png"));
-}
-
 VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 
 	bindings.clear();
@@ -266,7 +265,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Acceleration structure
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 0;
+		b.binding = BINDING_SCENE;
 		b.descriptorCount = 1;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
 		b.pImmutableSamplers = nullptr;
@@ -278,7 +277,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Result image
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 1;
+		b.binding = BINDING_OUTPUT;
 		b.descriptorCount = 1;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		b.pImmutableSamplers = nullptr;
@@ -290,7 +289,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Settings uniform buffer
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 2;
+		b.binding = BINDING_SETTINGS;
 		b.descriptorCount = 1;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		b.pImmutableSamplers = nullptr;
@@ -302,7 +301,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Camera uniform buffer
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 3;
+		b.binding = BINDING_CAMERA;
 		b.descriptorCount = 1;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		b.pImmutableSamplers = nullptr;
@@ -314,7 +313,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Vertex buffer
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 4;
+		b.binding = BINDING_VERTEX_BUFFERS;
 		b.descriptorCount = 32;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		b.pImmutableSamplers = nullptr;
@@ -326,7 +325,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Index buffer
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 5;
+		b.binding = BINDING_INDEX_BUFFERS;
 		b.descriptorCount = 32;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		b.pImmutableSamplers = nullptr;
@@ -335,12 +334,24 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 		bindings.push_back(b);
 	}
 
-	// Light uniform buffer
+	// Instances
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 6;
-		b.descriptorCount = 1;
-		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		b.binding = BINDING_INSTANCE_BUFFERS;
+		b.descriptorCount = 32;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+		bindings.push_back(b);
+	}
+
+	// Materials
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = BINDING_MATERIAL_BUFFERS;
+		b.descriptorCount = 32;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		b.pImmutableSamplers = nullptr;
 		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
 
@@ -350,9 +361,21 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 	// Textures
 	{
 		VkDescriptorSetLayoutBinding b = {};
-		b.binding = 7;
+		b.binding = BINDING_TEXTURE_SAMPLERS;
 		b.descriptorCount = 32;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+		bindings.push_back(b);
+	}
+
+	// Light uniform buffer
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = BINDING_LIGHT_BUFFER;
+		b.descriptorCount = 1;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		b.pImmutableSamplers = nullptr;
 		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
 
@@ -382,7 +405,7 @@ void Application::writeDescriptorSets() {
 			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			wds.pNext = &wdsAccelerationStructure;
 			wds.dstSet = ds;
-			wds.dstBinding = 0;
+			wds.dstBinding = BINDING_SCENE;
 			wds.descriptorCount = 1;
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
 
@@ -401,7 +424,7 @@ void Application::writeDescriptorSets() {
 			wds.dstArrayElement = 0;
 			wds.descriptorCount = 1;
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			wds.dstBinding = 2;
+			wds.dstBinding = BINDING_SETTINGS;
 			wds.pBufferInfo = &info;
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
@@ -419,7 +442,7 @@ void Application::writeDescriptorSets() {
 			wds.dstArrayElement = 0;
 			wds.descriptorCount = 1;
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			wds.dstBinding = 3;
+			wds.dstBinding = BINDING_CAMERA;
 			wds.pBufferInfo = &info;
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
@@ -444,7 +467,7 @@ void Application::writeDescriptorSets() {
 			wds.dstArrayElement = 0;
 			wds.descriptorCount = (uint32_t) info.size();
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			wds.dstBinding = 4;
+			wds.dstBinding = BINDING_VERTEX_BUFFERS;
 			wds.pBufferInfo = info.data();
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
@@ -468,8 +491,80 @@ void Application::writeDescriptorSets() {
 			wds.dstArrayElement = 0;
 			wds.descriptorCount = (uint32_t) info.size();
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			wds.dstBinding = 5;
+			wds.dstBinding = BINDING_INDEX_BUFFERS;
 			wds.pBufferInfo = info.data();
+
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
+		}
+
+		{
+			std::vector<VkDescriptorBufferInfo> info;
+
+			for (const auto& o : scene->getInstances()) {
+				VkDescriptorBufferInfo i = {};
+				i.buffer = *o->buffer;
+				i.offset = 0;
+				i.range = VK_WHOLE_SIZE;
+
+				info.push_back(i);
+			}
+
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.dstSet = ds;
+			wds.dstArrayElement = 0;
+			wds.descriptorCount = (uint32_t) info.size();
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			wds.dstBinding = BINDING_INSTANCE_BUFFERS;
+			wds.pBufferInfo = info.data();
+
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
+		}
+
+		{
+			std::vector<VkDescriptorBufferInfo> info;
+
+			for (const auto& m : scene->getMaterials()) {
+				VkDescriptorBufferInfo i = {};
+				i.buffer = *m->buffer;
+				i.offset = 0;
+				i.range = VK_WHOLE_SIZE;
+
+				info.push_back(i);
+			}
+
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.dstSet = ds;
+			wds.dstArrayElement = 0;
+			wds.descriptorCount = (uint32_t) info.size();
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			wds.dstBinding = BINDING_MATERIAL_BUFFERS;
+			wds.pBufferInfo = info.data();
+
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
+		}
+
+		{
+			std::vector<VkDescriptorImageInfo> info;
+
+			for (const auto& t : scene->getTextures()) {
+				VkDescriptorImageInfo i = {};
+				i.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				i.imageView = t->getImageView();
+				i.sampler = t->getSampler();
+
+				info.push_back(i);
+			}
+
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.dstSet = ds;
+			wds.dstArrayElement = 0;
+			wds.descriptorCount = (uint32_t) info.size();
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			wds.dstBinding = BINDING_TEXTURE_SAMPLERS;
+			wds.pImageInfo = info.data();
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
 		}
@@ -486,32 +581,8 @@ void Application::writeDescriptorSets() {
 			wds.dstArrayElement = 0;
 			wds.descriptorCount = 1;
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			wds.dstBinding = 6;
+			wds.dstBinding = BINDING_LIGHT_BUFFER;
 			wds.pBufferInfo = &info;
-
-			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
-		}
-
-		{
-			std::vector<VkDescriptorImageInfo> info;
-
-			for (const auto& t : textures) {
-				VkDescriptorImageInfo i = {};
-				i.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				i.imageView = t->getImageView();
-				i.sampler = t->getSampler();
-
-				info.push_back(i);
-			}
-
-			VkWriteDescriptorSet wds = {};
-			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			wds.dstSet = ds;
-			wds.dstArrayElement = 0;
-			wds.descriptorCount = (uint32_t) info.size();
-			wds.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			wds.dstBinding = 7;
-			wds.pImageInfo = info.data();
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
 		}

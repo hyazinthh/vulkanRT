@@ -101,3 +101,39 @@ RaytracingPipeline* RaytracingPipeline::create() {
 
 	return this;
 }
+
+ShaderBindingTable* RaytracingPipeline::generateShaderBindingTable() {
+
+	ShaderBindingTable* sbt = new ShaderBindingTable(device, this);
+
+	for (auto& g : shaderGroups) {
+
+		ShaderBindingTable::EntryType type;
+
+		if (g.type == VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV) {
+
+			auto stage = shaderStages[g.generalShader].stage;
+
+			if (stage == VK_SHADER_STAGE_RAYGEN_BIT_NV) {
+				type = ShaderBindingTable::EntryType::RayGen;
+			} else if (stage == VK_SHADER_STAGE_MISS_BIT_NV) {
+				type = ShaderBindingTable::EntryType::Miss;
+			} else if (stage == VK_SHADER_STAGE_CALLABLE_BIT_NV) {
+				type = ShaderBindingTable::EntryType::Callable;
+			} else {
+				throw std::logic_error("Unsupported shader stage added");
+			}
+
+		} else if (g.type == VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV) {
+			type = ShaderBindingTable::EntryType::HitGroup;
+		} else if (g.type == VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV) {
+			type = ShaderBindingTable::EntryType::HitGroup;
+		} else {
+			throw std::logic_error("Unsupported shader group type added");
+		}
+
+		sbt->addEntry(type);
+	}
+
+	return sbt->create();
+}

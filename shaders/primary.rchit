@@ -1,91 +1,54 @@
 #version 460
+
 #extension GL_NV_ray_tracing : require
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_GOOGLE_include_directive : require
 
-struct RayPayload {
-    vec4 color;
-    int bounce;
-};
+#include "common/bindings.glsl"
 
 layout(location = 0) rayPayloadInNV RayPayload payloadIn;
 layout(location = 1) rayPayloadNV bool isShadowed;
 layout(location = 2) rayPayloadNV RayPayload payloadOut;
 
-struct Vertex {
-    vec4 position;
-    vec3 normal;
-    vec3 tangent;
-    vec3 bitangent;
-    vec2 tc;
-};
-
-layout(set = 0, binding = 0) uniform accelerationStructureNV scene;
-
-layout(set = 0, binding = 2) uniform RayTracingSettings {
-    uint maxBounces;
-    float tmax;
-} rayTracingSettings;
-
-layout(set = 0, binding = 4) buffer Vertices { 
-    Vertex v[]; 
-} vertices[];
-
-layout(set = 0, binding = 5) buffer Indices {
-    uint i[];
-} indices[];
-
-layout(set = 0, binding = 6) uniform Light {
-    vec4 position;
-    vec4 diffuseColor;
-} light;
-
-layout(set = 0, binding = 7) uniform sampler2D[] textureSamplers;
-
-layout(shaderRecordNV) buffer ShaderRecord {
-	int objectId;
-    int textureId[3];
-    vec4 color;
-    mat3 normalMatrix;
-};
-
 hitAttributeNV vec2 hitAttribs;
 
-Vertex getHitPoint() {
+Vertex getHitPoint(Instance inst) {
 
-    ivec3 ind = ivec3(indices[objectId].i[3 * gl_PrimitiveID],
-        indices[objectId].i[3 * gl_PrimitiveID + 1],
-        indices[objectId].i[3 * gl_PrimitiveID + 2]);
+    uint objId = inst.objectId;
+    Face f = indexBuffer[objId].faces[gl_PrimitiveID];
 
-    Vertex v0 = vertices[objectId].v[ind.x];
-    Vertex v1 = vertices[objectId].v[ind.y];
-    Vertex v2 = vertices[objectId].v[ind.z];    
+    Vertex v[3];
+    v[0] = vertexBuffer[objId].vertices[f.indices[0]];
+    v[1] = vertexBuffer[objId].vertices[f.indices[1]];
+    v[2] = vertexBuffer[objId].vertices[f.indices[2]];
 
     const vec3 bc = vec3(1.0f - hitAttribs.x - hitAttribs.y, hitAttribs.x, hitAttribs.y);
 
     Vertex hitPoint;
-    hitPoint.position = bc.x * v0.position + bc.y * v1.position + bc.z * v2.position;
-    hitPoint.normal = normalize(bc.x * v0.normal + bc.y * v1.normal + bc.z * v2.normal);
-    hitPoint.tangent = normalize(bc.x * v0.tangent + bc.y * v1.tangent + bc.z * v2.tangent);
-    hitPoint.bitangent = normalize(bc.x * v0.bitangent + bc.y * v1.bitangent + bc.z * v2.bitangent);
-    hitPoint.tc = bc.x * v0.tc + bc.y * v1.tc + bc.z * v2.tc;
+    hitPoint.position = bc.x * v[0].position + bc.y * v[1].position + bc.z * v[2].position;
+    hitPoint.normal = normalize(bc.x * v[0].normal + bc.y * v[1].normal + bc.z * v[2].normal);
+    hitPoint.tangent = normalize(bc.x * v[0].tangent + bc.y * v[1].tangent + bc.z * v[2].tangent);
+    hitPoint.tc = bc.x * v[0].tc + bc.y * v[1].tc + bc.z * v[2].tc;
 
     return hitPoint;
 }
 
 void main() {
 
-    Vertex v = getHitPoint();
+    Instance inst = instances[gl_InstanceCustomIndexNV].instance;
+    Material mat = materials[inst.materialId].material;
+    Vertex v = getHitPoint(inst);
 
     // Lighting
     vec3 lightVector = normalize(light.position.xyz - v.position.xyz);
 
     // Normal
-    vec3 N = normalize(normalMatrix * v.normal);
-    vec3 T = normalize(normalMatrix * v.tangent);
-    vec3 B = normalize(normalMatrix * v.bitangent);
+    vec3 N = normalize(inst.normalMatrix * v.normal);
+    vec3 T = normalize(inst.normalMatrix * v.tangent);
+    vec3 B = cross(N, T);
 
-    if (textureId[1] > -1) {
-        vec3 n = texture(textureSamplers[textureId[1]], v.tc.xy).xyz * 2.0f - 1.0f;
+    if (mat.textureId[1] > -1) {
+        vec3 n = texture(textures[mat.textureId[1]], v.tc.xy).xyz * 2.0f - 1.0f;
         n = normalize(vec3(n.x, n.y, n.z * 5.0f));
         N = normalize(mat3(T, B, N) * n);
     }
@@ -102,7 +65,7 @@ void main() {
         1 /* missIndex */, origin, tmin, light.position.xyz - origin, tmax, 1 /*payload location*/);
 
     // Diffuse color
-    vec4 color = (textureId[0] > -1) ? texture(textureSamplers[textureId[0]], v.tc.xy) : color;
+    vec4 color = (mat.textureId[0] > -1) ? texture(textures[mat.textureId[0]], v.tc.xy) : mat.color;
 
     if (color == vec4(1.0f) && payloadIn.bounce < rayTracingSettings.maxBounces) {
         payloadOut.bounce = payloadIn.bounce + 1;

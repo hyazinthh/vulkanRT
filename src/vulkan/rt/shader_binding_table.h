@@ -10,6 +10,7 @@ class ShaderBindingTable {
 		enum class EntryType {
 			RayGen,
 			Miss,
+			Callable,
 			HitGroup,
 			Count
 		};

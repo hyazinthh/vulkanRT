@@ -5,11 +5,68 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
+
+class Includer : public shaderc::CompileOptions::IncluderInterface {
+
+	private:
+		struct Source {
+			std::string path, content;
+		};
+
+	public:
+		// Handles shaderc_include_resolver_fn callbacks.
+		shaderc_include_result* GetInclude(const char* requested_source,
+			shaderc_include_type type,
+			const char* requesting_source,
+			size_t include_depth) {
+
+			auto rs = new shaderc_include_result();
+			*rs = {};
+
+			auto path = std::filesystem::path(requesting_source)
+				.parent_path()
+				.append(requested_source);
+
+			std::ifstream f(path);
+			if (!f.is_open()) {
+				rs->source_name = "";
+				rs->content = "File not found";
+				return rs;
+			}
+
+			std::stringstream buffer;
+			buffer << f.rdbuf();
+
+			auto src = std::make_unique<Source>();
+			src->path = std::filesystem::absolute(path).string();
+			src->content = buffer.str();
+
+			rs->source_name = src->path.c_str();
+			rs->source_name_length = src->path.length();
+			rs->content = src->content.c_str();
+			rs->content_length = src->content.length();
+
+			sources.push_back(std::move(src));
+			return rs;
+		}
+
+		// Handles shaderc_include_result_release_fn callbacks.
+		void ReleaseInclude(shaderc_include_result* data) {
+			delete data;
+		}
+
+	private:
+
+		std::vector<std::unique_ptr<Source>> sources;
+};
 
 Shader::Shader(Device* device, const std::string& name, const std::string& src, Type type) : device(device), type(type) {
 	shaderc::Compiler compiler;
 	shaderc::CompileOptions options;
+	std::unique_ptr<shaderc::CompileOptions::IncluderInterface> includer = std::make_unique<Includer>();
 
+	options.SetIncluder(std::move(includer));
 	auto spv = compile(name, prepare(name, src, compiler, options), compiler, options);
 
 	VkShaderModuleCreateInfo moduleInfo = {};

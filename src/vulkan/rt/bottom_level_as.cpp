@@ -22,7 +22,8 @@ BottomLevelAS::BottomLevelAS(Device* device,
 	geometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
 	geometry.geometry.triangles.transformData = VK_NULL_HANDLE;
 	geometry.geometry.triangles.transformOffset = 0;
-	geometry.geometry.aabbs = { VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV };
+	geometry.geometry.aabbs = {};
+	geometry.geometry.aabbs.sType = VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
 	geometry.flags = isOpaque ? VK_GEOMETRY_OPAQUE_BIT_NV : 0;
 
 	VkAccelerationStructureInfoNV info = {};

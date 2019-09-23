@@ -1,8 +1,12 @@
 #version 460
-#extension GL_NV_ray_tracing : require
 
-layout(location = 0) rayPayloadInNV vec4 resultColor;
+#extension GL_NV_ray_tracing : require
+#extension GL_GOOGLE_include_directive : require
+
+#include "common/types.glsl"
+
+layout(location = 0) rayPayloadInNV RayPayload payloadIn;
 
 void main() {
-    resultColor = vec4(1.0f);
+    payloadIn.color = vec4(1.0f);
 }
