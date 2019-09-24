@@ -15,6 +15,8 @@ Scene::Scene(Device* device) : device(device) {
 	std::unique_ptr<Shader> shaderClosestHit(Shader::loadFromFile(device, "shaders/primary.rchit", Shader::Type::ClosestHit));
 	std::unique_ptr<Shader> shaderRayGen(Shader::loadFromFile(device, "shaders/primary.rgen", Shader::Type::RayGen));
 	std::unique_ptr<Shader> shaderLight(Shader::loadFromFile(device, "shaders/light_source.rchit", Shader::Type::ClosestHit));
+	std::unique_ptr<Shader> shaderSphereClosestHit(Shader::loadFromFile(device, "shaders/sphere.rchit", Shader::Type::ClosestHit));
+	std::unique_ptr<Shader> shaderSphereIntersection(Shader::loadFromFile(device, "shaders/sphere.rint", Shader::Type::Intersection));
 
 	// Stages
 	pipeline->addShaderStage(shaderRayGen.get());
@@ -23,6 +25,11 @@ Scene::Scene(Device* device) : device(device) {
 
 	uint32_t hitGroupNormal = pipeline->startHitGroup();
 	pipeline->addHitShaderStage(shaderClosestHit.get());
+	pipeline->endHitGroup();
+
+	uint32_t hitGroupSphere = pipeline->startHitGroup();
+	pipeline->addHitShaderStage(shaderSphereClosestHit.get());
+	pipeline->addHitShaderStage(shaderSphereIntersection.get());
 	pipeline->endHitGroup();
 
 	uint32_t hitGroupLight = pipeline->startHitGroup();
@@ -42,8 +49,9 @@ Scene::Scene(Device* device) : device(device) {
 	auto materialCube = addMaterial({ nullptr, textureNormalMap, nullptr, nullptr });
 
 	// Objects
-	std::shared_ptr<Object> quad;
-	std::shared_ptr<Object> cube;
+	std::shared_ptr<IObject> quad;
+	std::shared_ptr<IObject> cube;
+	std::shared_ptr<IObject> sphere;
 
 	{
 		const std::vector<Vertex> vertices = {
@@ -57,7 +65,7 @@ Scene::Scene(Device* device) : device(device) {
 			0, 1, 2, 0, 3, 1
 		};
 
-		quad = addObject(vertices, indices);
+		quad = addMesh(vertices, indices);
 	}
 
 	{
@@ -108,8 +116,10 @@ Scene::Scene(Device* device) : device(device) {
 			20, 21, 22, 20, 21, 23
 		};
 
-		cube = addObject(vertices, indices);
+		cube = addMesh(vertices, indices);
 	}
+
+	sphere = addSphere(0.5f);
 
 	// Floor
 	{
@@ -118,7 +128,7 @@ Scene::Scene(Device* device) : device(device) {
 
 	// Rotating cube
 	{
-		rotatingCube = addInstance(cube, hitGroupNormal, materialCube);
+		rotatingCube = addInstance(sphere, hitGroupSphere, materialCube);
 	}
 
 	// Point light
@@ -163,7 +173,7 @@ void Scene::updateInstance(std::shared_ptr<Instance> instance) {
 	};
 
 	Data data;
-	data.objectId = getIndex(objects, instance->object);
+	data.objectId = instance->object->getIndex();
 	data.materialId = getIndex(materials, instance->material);
 	data.normalMatrix = glm::transpose(glm::inverse(glm::mat3(instance->transform)));
 
@@ -194,21 +204,32 @@ void Scene::updateMaterial(std::shared_ptr<Material> material) {
 	}
 }
 
-std::shared_ptr<Scene::Object> Scene::addObject(const std::vector<Vertex>& vertices,
+std::shared_ptr<Scene::IObject> Scene::addMesh(const std::vector<Vertex>& vertices,
 	const std::vector<uint32_t>& indices) {
 
-	auto obj = std::make_shared<Object>();
-	obj->vertices = vertices;
-	obj->vertexBuffer = createBuffer(sizeof(Vertex) * vertices.size(), vertices.data());
-	obj->indices = indices;
-	obj->indexBuffer = createBuffer(sizeof(uint32_t) * indices.size(), indices.data());
-	obj->blAS = std::make_unique<BottomLevelAS>(device,
-		obj->vertexBuffer.get(), (uint32_t) vertices.size(), sizeof(Vertex),
-		obj->indexBuffer.get(), (uint32_t) indices.size());
+	auto vb = createBuffer(sizeof(Vertex) * vertices.size(), vertices.data());
+	auto ib = createBuffer(sizeof(uint32_t) * indices.size(), indices.data());
+	auto blas = std::make_unique<BottomLevelAS>(device,
+		vb.get(), (uint32_t) vertices.size(), sizeof(Vertex),
+		ib.get(), (uint32_t) indices.size());
 
-	objects.push_back(obj);
+	uint32_t index = (uint32_t) meshes.size();
+	auto mesh = std::make_shared<Mesh>(index, blas, vb, ib);
 
-	return obj;
+	meshes.push_back(mesh);
+	return mesh;
+}
+
+std::shared_ptr<Scene::IObject> Scene::addSphere(float radius) {
+
+	auto buffer = createBuffer(sizeof(float), &radius);
+	auto blas = std::make_unique<BottomLevelAS>(device, radius);
+
+	uint32_t index = (uint32_t) spheres.size();
+	auto sphere = std::make_shared<Sphere>(index, blas, buffer);
+
+	spheres.push_back(sphere);
+	return sphere;
 }
 
 std::shared_ptr<Texture> Scene::addTexture(const std::string& file, VkFormat format) {
@@ -234,7 +255,7 @@ std::shared_ptr<Scene::Material> Scene::addMaterial(const std::array<std::shared
 	return mat;
 }
 
-std::shared_ptr<Scene::Instance> Scene::addInstance(const std::shared_ptr<Object>& object,
+std::shared_ptr<Scene::Instance> Scene::addInstance(const std::shared_ptr<IObject>& object,
 	uint32_t hitGroup, const std::shared_ptr<Material>& material,
 	const glm::mat4& transform, uint32_t mask) {
 
@@ -256,7 +277,7 @@ void Scene::buildAccelerationStructure(bool updateOnly) {
 	std::vector<TopLevelAS::Instance> instances;
 	for (const auto& i : this->instances) {
 		instances.push_back(
-			TopLevelAS::Instance(i->object->blAS.get(), (uint32_t) i->index, i->hitGroup, i->mask, i->transform)
+			TopLevelAS::Instance(i->object->getBottomLevelAS(), (uint32_t) i->index, i->hitGroup, i->mask, i->transform)
 		);
 	}
 

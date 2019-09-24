@@ -5,10 +5,7 @@
 #extension GL_GOOGLE_include_directive : require
 
 #include "common/bindings.glsl"
-
-layout(location = 0) rayPayloadInNV RayPayload payloadIn;
-layout(location = 1) rayPayloadNV bool isShadowed;
-layout(location = 2) rayPayloadNV RayPayload payloadOut;
+#include "common/lighting.glsl"
 
 hitAttributeNV vec2 hitAttribs;
 
@@ -35,53 +32,9 @@ Vertex getHitPoint(Instance inst) {
 
 void main() {
 
-    Instance inst = instances[gl_InstanceCustomIndexNV].instance;
-    Material mat = materials[inst.materialId].material;
-    Vertex v = getHitPoint(inst);
+    Instance instance = instances[gl_InstanceCustomIndexNV].instance;
+    Material material = materials[instance.materialId].material;
+    Vertex vertex = getHitPoint(instance);
 
-    // Lighting
-    vec3 lightVector = normalize(light.position.xyz - v.position.xyz);
-
-    // Normal
-    vec3 N = normalize(inst.normalMatrix * v.normal);
-    vec3 T = normalize(inst.normalMatrix * v.tangent);
-    vec3 B = cross(N, T);
-
-    if (mat.textureId[1] > -1) {
-        vec3 n = texture(textures[mat.textureId[1]], v.tc.xy).xyz * 2.0f - 1.0f;
-        n = normalize(vec3(n.x, n.y, n.z * 5.0f));
-        N = normalize(mat3(T, B, N) * n);
-    }
-
-    // Shadow ray
-    float tmin = 0.001;
-    float tmax = 1.0;
-    vec3 origin = gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
-
-    isShadowed = true;
-
-    traceNV(scene, gl_RayFlagsTerminateOnFirstHitNV | gl_RayFlagsOpaqueNV | gl_RayFlagsSkipClosestHitShaderNV, 
-        0xFE, 1 /* sbtRecordOffset */, 0 /* sbtRecordStride */,
-        1 /* missIndex */, origin, tmin, light.position.xyz - origin, tmax, 1 /*payload location*/);
-
-    // Diffuse color
-    vec4 color = (mat.textureId[0] > -1) ? texture(textures[mat.textureId[0]], v.tc.xy) : mat.color;
-
-    if (color == vec4(1.0f) && payloadIn.bounce < rayTracingSettings.maxBounces) {
-        payloadOut.bounce = payloadIn.bounce + 1;
-
-        traceNV(scene, gl_RayFlagsOpaqueNV, 
-            0xFF, 
-            0 /* sbtRecordOffset */, 
-            0 /* sbtRecordStride */,
-            0 /* missIndex */, 
-            origin, tmin, reflect(gl_WorldRayDirectionNV, N), rayTracingSettings.tmax, 
-            2 /*payload location*/);
-
-        color = payloadOut.color;
-    }
-
-    // Diffuse lighting
-    float diffuse = isShadowed ? 0.2 : max(dot(lightVector, N), 0.2);
-    payloadIn.color = color * diffuse;
+    payloadIn.color = lighting(instance, material, vertex);
 }

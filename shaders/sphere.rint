@@ -1,0 +1,46 @@
+#version 460
+
+#extension GL_NV_ray_tracing : require
+#extension GL_GOOGLE_include_directive : require
+
+#include "common/bindings.glsl"
+
+hitAttributeNV Vertex hitAttribs;
+
+vec2 getUV(vec3 p) {
+    float u = 0.5 + atan(p.y, p.x) / (2 * PI);
+    float v = 0.5 - asin(p.z) / PI;
+    return vec2(u, v);
+}
+
+vec3 getTangent(vec3 N) {
+    return normalize(vec3(N.y, -N.x, 0.0f)); //FIXME: Not correct at all
+}
+
+void main() {
+
+    Instance instance = instances[gl_InstanceCustomIndexNV].instance;
+    Sphere sphere = spheres[instance.objectId].sphere;
+
+    float radius = sphere.radius;
+
+    vec3 origin = gl_ObjectRayOriginNV;;
+    vec3 direction = gl_ObjectRayDirectionNV;
+
+    float a = dot(direction, direction);
+    float b = 2.0 * dot(origin, direction);
+    float c = dot(origin, origin) - radius * radius;
+    float discriminant = b * b - 4 * a * c;
+
+    if(discriminant >= 0) {
+        float t = (-b - sqrt(discriminant)) / (2.0 * a);
+        vec3 p = origin + t * direction;
+
+        hitAttribs.position = p * gl_ObjectToWorldNV;
+        hitAttribs.normal = normalize(p);
+        hitAttribs.tangent = getTangent(hitAttribs.normal);
+        hitAttribs.tc = getUV(-hitAttribs.normal);
+
+        reportIntersectionNV(t, 0);
+    }
+}

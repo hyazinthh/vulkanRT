@@ -12,6 +12,10 @@ struct Face {
     uint indices[3];
 };
 
+struct Sphere {
+    float radius;
+};
+
 struct Instance {
 	int objectId;
     int materialId;
@@ -40,6 +44,7 @@ struct RayPayload {
 
 struct RayTracingSettings {
     uint maxBounces;
+    float tmin;
     float tmax;
 };
 

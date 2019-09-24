@@ -9,6 +9,8 @@ class BottomLevelAS : public AccelerationStructure {
 			Buffer* vertexBuffer, uint32_t vertexCount, VkDeviceSize vertexStride,
 			Buffer* indexBuffer, uint32_t indexCount, bool isOpaque = true);
 
+		BottomLevelAS(Device* device, float radius, bool isOpaque = true);
+
 		~BottomLevelAS();
 
 	private:

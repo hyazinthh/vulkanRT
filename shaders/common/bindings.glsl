@@ -1,6 +1,8 @@
 #ifndef BINDINGS_GLSL_
 #define BINDINGS_GLSL_
 
+#extension GL_EXT_nonuniform_qualifier : require
+
 #include "constants.glsl"
 #include "types.glsl"
 
@@ -23,6 +25,10 @@ layout(set = 0, binding = BINDING_VERTEX_BUFFERS, std430) readonly buffer Vertex
 layout(set = 0, binding = BINDING_INDEX_BUFFERS, std430) readonly buffer IndexBuffer {
     Face faces[];
 } indexBuffer[];
+
+layout(set = 0, binding = BINDING_SPHERE_BUFFERS, std430) readonly buffer SphereBuffer {
+    Sphere sphere;
+} spheres[];
 
 layout(set = 0, binding = BINDING_INSTANCE_BUFFERS, std430) readonly buffer InstanceBuffer {
     Instance instance;

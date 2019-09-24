@@ -17,13 +17,15 @@ const uint32_t BINDING_SETTINGS = 2;
 const uint32_t BINDING_CAMERA = 3;
 const uint32_t BINDING_VERTEX_BUFFERS = 4;
 const uint32_t BINDING_INDEX_BUFFERS = 5;
-const uint32_t BINDING_INSTANCE_BUFFERS = 6;
-const uint32_t BINDING_MATERIAL_BUFFERS = 7;
-const uint32_t BINDING_TEXTURE_SAMPLERS = 8;
-const uint32_t BINDING_LIGHT_BUFFER = 9;
+const uint32_t BINDING_SPHERE_BUFFERS = 6;
+const uint32_t BINDING_INSTANCE_BUFFERS = 7;
+const uint32_t BINDING_MATERIAL_BUFFERS = 8;
+const uint32_t BINDING_TEXTURE_SAMPLERS = 9;
+const uint32_t BINDING_LIGHT_BUFFER = 10;
 
 struct SettingsUniforms {
 	uint32_t maxBounces;
+	float tmin;
 	float tmax;
 };
 
@@ -100,20 +102,14 @@ void Application::update(float dt) {
 	auto id = glm::mat4(1.0f);
 
 	{
-		auto rotation = glm::rotate(id, dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		auto rotation = glm::rotate(id, dt * glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		auto rotationSelf = glm::rotate(
-								glm::rotate(id, -dt * glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-							    -dt * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)
+								glm::rotate(id, -dt * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+							    -dt * glm::radians(45.0f), glm::vec3(1.0f, 0.0f, 0.0f)
 							);
 		auto translation = glm::translate(id, glm::vec3(1, 1, 1));
 
 		scene->rotatingCube->transform = rotation * translation * rotationSelf;
-
-		/*auto red = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-		auto blue = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-
-		float t = glm::sin(dt * glm::radians(90.0f));
-		scene->rotatingCube->color = (1 - t) * red + t * blue;*/
 	}
 
 	LightUniforms light = {};
@@ -240,6 +236,7 @@ void Application::createBuffers() {
 
 		SettingsUniforms settings;
 		settings.maxBounces = 1;
+		settings.tmin = 0.001f;
 		settings.tmax = 48.0f;
 
 		settingsUniformBuffer->fill(&settings);
@@ -334,6 +331,18 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 		bindings.push_back(b);
 	}
 
+	// Sphere buffer
+	{
+		VkDescriptorSetLayoutBinding b = {};
+		b.binding = BINDING_SPHERE_BUFFERS;
+		b.descriptorCount = 32;
+		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		b.pImmutableSamplers = nullptr;
+		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_INTERSECTION_BIT_NV;
+
+		bindings.push_back(b);
+	}
+
 	// Instances
 	{
 		VkDescriptorSetLayoutBinding b = {};
@@ -341,7 +350,7 @@ VkDescriptorSetLayoutCreateInfo Application::getDescriptorSetLayoutInfo() {
 		b.descriptorCount = 32;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		b.pImmutableSamplers = nullptr;
-		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+		b.stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_INTERSECTION_BIT_NV;
 
 		bindings.push_back(b);
 	}
@@ -451,10 +460,10 @@ void Application::writeDescriptorSets() {
 		{
 			std::vector<VkDescriptorBufferInfo> info;
 			
-			for (const auto& o : scene->getObjects())
+			for (const auto& m : scene->getMeshes())
 			{
 				VkDescriptorBufferInfo i = {};
-				i.buffer = *o->vertexBuffer;
+				i.buffer = *m->getVertexBuffer();
 				i.offset = 0;
 				i.range = VK_WHOLE_SIZE;
 
@@ -476,9 +485,9 @@ void Application::writeDescriptorSets() {
 		{
 			std::vector<VkDescriptorBufferInfo> info;
 
-			for (const auto& o : scene->getObjects()) {
+			for (const auto& m : scene->getMeshes()) {
 				VkDescriptorBufferInfo i = {};
-				i.buffer = *o->indexBuffer;
+				i.buffer = *m->getIndexBuffer();
 				i.offset = 0;
 				i.range = VK_WHOLE_SIZE;
 
@@ -492,6 +501,30 @@ void Application::writeDescriptorSets() {
 			wds.descriptorCount = (uint32_t) info.size();
 			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			wds.dstBinding = BINDING_INDEX_BUFFERS;
+			wds.pBufferInfo = info.data();
+
+			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
+		}
+
+		{
+			std::vector<VkDescriptorBufferInfo> info;
+
+			for (const auto& s : scene->getSpheres()) {
+				VkDescriptorBufferInfo i = {};
+				i.buffer = *s->getBuffer();
+				i.offset = 0;
+				i.range = VK_WHOLE_SIZE;
+
+				info.push_back(i);
+			}
+
+			VkWriteDescriptorSet wds = {};
+			wds.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			wds.dstSet = ds;
+			wds.dstArrayElement = 0;
+			wds.descriptorCount = (uint32_t) info.size();
+			wds.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			wds.dstBinding = BINDING_SPHERE_BUFFERS;
 			wds.pBufferInfo = info.data();
 
 			vkUpdateDescriptorSets(*device, 1, &wds, 0, nullptr);
